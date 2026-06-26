@@ -1,62 +1,49 @@
 <div align="center">
 
-<img src="logo.png" alt="raspberry-pi-skill logo" width="200">
+<img src="logo.png" alt="raspberry-pi-skill logo" width="180">
 
 # raspberry-pi-skill
 
-A Raspberry Pi hardware control skill pack for AI Agents
+A Raspberry Pi hardware skill pack for general-purpose AI Agents
 
 <p>
   🇬🇧 English · <a href="README.md">🇨🇳 中文</a>
 </p>
-
-Semantic device control, GPIO/PWM, buzzer control, pin registry, system monitoring, and JSON-friendly calls for Agents running on Raspberry Pi.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 [![RPi.GPIO](https://img.shields.io/badge/dep-RPi.GPIO-blue)](requirements.txt)
 
 </div>
 
----
+> Current version line: v0.3 Device Semantic Skill
 
-## Table of Contents
+## Introduction
 
-- [Project Scope](#project-scope)
-- [Compatible Models](#compatible-models)
-- [File Structure](#file-structure)
-- [Dependencies](#dependencies)
-- [Installation](#installation)
-- [Quick Start](#quick-start)
-- [Built-in Scripts](#built-in-scripts)
-- [Device Registry](#device-registry)
-- [Pin Registry](#pin-registry)
-- [Agent Schema](#agent-schema)
-- [Testing](#testing)
-- [Hardware Reference](#hardware-reference)
-- [Roadmap](#roadmap)
-- [Contributing](#contributing)
-- [License](#license)
+`raspberry-pi-skill` is a Raspberry Pi hardware skill pack for general-purpose AI Agents. It splits hardware capabilities into four layers:
 
----
+- `SKILL.md` helps an Agent understand the capability
+- `schemas/*.schema.json` define parameters and return values
+- `scripts/*.py` provide stable CLI tools and JSON output
+- `references/` and `config/` provide hardware references and pin registry files
 
-## Project Scope
+It is not an IoT platform, background service, automation system, remote bridge, or integration layer for any specific Agent framework.
 
-`raspberry-pi-skill` is a Raspberry Pi hardware skill pack for general-purpose AI Agents. It only provides a skill descriptor, structured CLI tools, JSON Schemas, semantic device wrappers, and hardware references. It is not an IoT platform, background service, automation system, remote hardware bridge, or integration layer for any specific Agent framework.
+## Core Features
 
-Current scope:
+- Semantic device control for LED, buzzer, relay, and button
+- GPIO, PWM, read/write control
+- `pi_info.py` for system status collection
+- JSON output for reliable Agent parsing
+- Device registry and pin registry
+- 40-pin mapping and hardware reference tables
+- Basic regression test coverage
 
-```text
-Skill descriptor + CLI scripts + semantic device layer + JSON output + Schema + tests + pin/device registry + hardware references
-```
+## Compatibility
 
----
-
-## Compatible Models
-
-All Raspberry Pi models with a 40-pin GPIO header can use the pin references, but runtime GPIO backends differ by board:
+All Raspberry Pi models with a 40-pin GPIO header can use the project as a reference. Recommended runtime backends are listed below:
 
 | Model | SoC | RAM | Recommended GPIO backend | Status |
-|:------|:----|:---:|:-------------------------|:------:|
+|:--|:--|:--:|:--|:--:|
 | Pi 1B+ | BCM2835 | 512 MB | RPi.GPIO | Works |
 | Pi 2 / 2B | BCM2836/7 | 1 GB | RPi.GPIO | Works |
 | Pi 3B / 3B+ | BCM2837 | 1 GB | RPi.GPIO | Recommended |
@@ -68,57 +55,53 @@ All Raspberry Pi models with a 40-pin GPIO header can use the pin references, bu
 >
 > Early 26-pin Pi 1 boards are not covered by the 40-pin pinout table.
 
----
-
 ## File Structure
 
 ```text
 raspberry-pi-skill/
-├── SKILL.md                        # Skill descriptor, Agent entry point
+├── SKILL.md                        # Skill entry point for Agents
 ├── README.md                       # Chinese documentation
-├── README.en.md                    # This file
+├── README.en.md                    # English documentation
 ├── logo.png                        # Project logo
-├── requirements.txt                # Default Python deps for Pi 3/4
+├── requirements.txt                # Default dependencies for Pi 3 / Pi 4
 ├── requirements-pi5.txt            # Pi 5 compatibility deps
 ├── requirements-dev.txt            # Test dependencies
+├── config/
+│   └── pins.example.json           # Example pin and device registry
 ├── devices/
 │   ├── common.py                   # Device registry, lazy GPIO loading, unified errors
 │   ├── led.py                      # LED semantic actions
 │   ├── buzzer.py                   # Buzzer semantic actions
 │   ├── relay.py                    # Relay semantic actions with active_low support
-│   └── button.py                   # Button read action
+│   └── button.py                   # Button input reading
+├── references/
+│   ├── hardware.md                 # Hardware comparison table
+│   └── pinout.md                   # Complete 40-pin mapping
 ├── schemas/
-│   ├── gpio_control.schema.json    # GPIO CLI input/output protocol
+│   ├── gpio_control.schema.json    # GPIO CLI protocol
 │   ├── pi_info.schema.json         # System info JSON protocol
 │   └── device_control.schema.json  # Semantic device CLI protocol
-├── tests/
-│   ├── test_gpio_control_cli.py    # Minimal GPIO CLI regression tests
-│   ├── test_pi_info_json.py        # System info JSON shape tests
-│   └── test_device_control_cli.py  # Semantic device layer tests
-├── config/
-│   └── pins.example.json           # Example pin and device registry
-├── references/
-│   ├── hardware.md                 # Hardware specs comparison
-│   └── pinout.md                   # Complete 40-pin GPIO reference
-└── scripts/
-    ├── device_control.py           # Semantic device control, preferred for Agents
-    ├── gpio_control.py             # GPIO control with JSON output
-    └── pi_info.py                  # System monitoring with JSON output
+├── scripts/
+│   ├── device_control.py           # Semantic device control script
+│   ├── gpio_control.py             # GPIO control script
+│   └── pi_info.py                  # System info script
+└── tests/
+    ├── test_gpio_control_cli.py    # GPIO CLI regression tests
+    ├── test_pi_info_json.py        # System info JSON tests
+    └── test_device_control_cli.py  # Semantic device layer tests
 ```
 
-`config/pins.json` is a local runtime registry and is ignored by `.gitignore`. Create it from the example when needed:
+`config/pins.json` is a local runtime file and is not committed to Git by default. Create it from the example when needed:
 
 ```bash
 cp config/pins.example.json config/pins.json
 ```
 
----
-
 ## Dependencies
 
 ### Python Packages
 
-Default install for Pi 3B / 3B+ / 4B:
+Default install for Pi 3B, 3B+, and 4B:
 
 ```bash
 pip3 install -r requirements.txt
@@ -131,24 +114,24 @@ pip3 install -r requirements-pi5.txt
 ```
 
 | Package | Purpose | Scenario |
-|:--------|:--------|:---------|
-| RPi.GPIO | GPIO pin control | Pi 1/2/3/4/Zero |
+|:--|:--|:--|
+| RPi.GPIO | GPIO pin read/write control | Pi 1 / 2 / 3 / 4 / Zero |
 | rpi-lgpio | RPi.GPIO-compatible interface backed by lgpio | Pi 5 recommended |
-| gpiozero | High-level GPIO API for future device layer | Pi 5 / general |
+| gpiozero | High-level GPIO API for future device layers | Pi 5 or general use |
 
 ### System Tools
 
-Usually pre-installed on Raspberry Pi OS:
+Raspberry Pi OS usually includes these tools:
 
 | Command | Package | Purpose |
-|:--------|:--------|:--------|
-| `vcgencmd` | libraspberrypi-bin | CPU temp / freq / voltage |
+|:--|:--|:--|
+| `vcgencmd` | libraspberrypi-bin | CPU temperature, frequency, and voltage |
 | `pinout` | raspberrypi-sys-mods | GPIO pinout diagram |
-| `ip` / `df` / `free` | coreutils / iproute2 | Network / disk / memory |
+| `ip`, `df`, `free` | coreutils, iproute2 | Network, disk, and memory |
 
 ### Hardware Permission
 
-User must be in the `gpio` group to access `/dev/gpiomem`.
+The user must be in the `gpio` group to access `/dev/gpiomem`:
 
 ```bash
 groups
@@ -157,11 +140,9 @@ sudo usermod -aG gpio $USER
 
 Re-login is required after changing groups.
 
----
-
 ## Installation
 
-A virtual environment is recommended to avoid Raspberry Pi OS `externally-managed-environment` restrictions:
+A virtual environment is recommended to avoid the Raspberry Pi OS `externally-managed-environment` restriction:
 
 ```bash
 sudo apt update
@@ -182,52 +163,36 @@ For Pi 5:
 pip install -r requirements-pi5.txt
 ```
 
----
-
 ## Quick Start
-
-### Recommended for Agents: semantic device control
 
 ```bash
 cp config/pins.example.json config/pins.json
 
 python3 scripts/device_control.py --list --json
 python3 scripts/device_control.py --device bedroom_led --action on --json
-python3 scripts/device_control.py --device bedroom_led --action blink --count 3 --interval 0.2 --json
 python3 scripts/device_control.py --device buzzer --action beep --count 3 --json
-python3 scripts/device_control.py --device relay_fan --action on --json
+python3 scripts/device_control.py --device relay_fan --action pulse --duration 1 --json
 python3 scripts/device_control.py --device button_1 --action read --json
-```
 
-### Low-level GPIO control
-
-```bash
-python3 scripts/pi_info.py
-python3 scripts/pi_info.py --json
-
-python3 scripts/gpio_control.py --list
-python3 scripts/gpio_control.py --status
-python3 scripts/gpio_control.py --pin 17 --read
-python3 scripts/gpio_control.py --pin 17 --write 1
-python3 scripts/gpio_control.py --pin 18 --pwm 1000 50
-python3 scripts/gpio_control.py --pin 18 --beep 3
-```
-
-Agents should also use JSON output when calling the GPIO layer:
-
-```bash
-python3 scripts/gpio_control.py --pin 17 --read --json
-python3 scripts/gpio_control.py --pin 17 --write 1 --json
 python3 scripts/gpio_control.py --status --json
+python3 scripts/gpio_control.py --pin 17 --read --json
+python3 scripts/pi_info.py --json
 ```
 
----
+## Recommended Flow for Agents
 
-## Built-in Scripts
+1. Read `SKILL.md` first
+2. Read the matching `schemas/*.schema.json`
+3. Prefer `scripts/device_control.py --json`
+4. Use `scripts/gpio_control.py --json` only when direct pin control is needed
+5. Use `scripts/pi_info.py --json` for system status
+6. Always inspect `ok` first, then handle `error` and `warning`
+
+## Script Reference
 
 ### device_control.py
 
-Semantic device control. Agents control hardware by device name and semantic action instead of memorizing BCM pins.
+Semantic device control script. Agents control hardware by device name and semantic action instead of memorizing BCM pin numbers.
 
 ```bash
 python3 scripts/device_control.py --list --json
@@ -242,19 +207,17 @@ python3 scripts/device_control.py --device button_1 --action read --json
 Supported device types:
 
 | Type | Actions | Description |
-|:-----|:--------|:------------|
+|:--|:--|:--|
 | led | on / off / toggle / blink | LED output |
 | buzzer | on / off / beep | Active buzzer output |
 | relay | on / off / pulse | Relay output with active-low support |
-| button | read | Button input read |
+| button | read | Button input reading |
 
-Set `active_high` carefully for relays. Many relay modules are active-low and should use `false`.
+Set `active_high` carefully for relays. Many relay modules are active-low.
 
 ### gpio_control.py
 
-GPIO control with read, write, PWM output, buzzer beep, pin registry warning, and JSON output.
-
-Common commands:
+GPIO pin control with read, write, PWM output, buzzer beep, pin registry hints, and JSON output.
 
 ```bash
 python3 scripts/gpio_control.py --list
@@ -283,10 +246,10 @@ JSON example:
 
 Notes:
 
-- BCM numbering is used by default.
-- Cleanup is enabled after operations by default, suitable for one-shot tests.
-- `--keep-state` skips cleanup, useful when a pin needs to keep its level.
-- Pin conflict warnings come from `config/pins.json`; they are registry hints, not real-time system-level pin scans.
+- BCM numbering is used by default
+- Cleanup runs after operations by default, which is suitable for one-shot tests
+- `--keep-state` skips cleanup, which is useful when a pin must hold its level
+- Pin conflict hints come from `config/pins.json`; they are registry hints, not real-time system-level scans
 
 ### pi_info.py
 
@@ -298,107 +261,27 @@ python3 scripts/pi_info.py --json
 python3 scripts/pi_info.py --watch
 ```
 
-Output: model, OS, CPU temp / freq / voltage / throttling, memory, disk, network, GPIO library version.
+Output includes model, OS, CPU temperature, frequency, voltage, throttling flags, memory, disk, network status, and GPIO library version.
 
----
+## Configuration
 
-## Device Registry
+`config/pins.example.json` provides two local registry types:
 
-`config/pins.json` can record both low-level pin occupancy and semantic devices. The device layer reads the `devices` field:
+- `devices`: semantic device registry
+- `pins`: actual wiring registry
 
-```json
-{
-  "devices": {
-    "bedroom_led": {
-      "type": "led",
-      "bcm": 17,
-      "active_high": true,
-      "description": "bedroom LED"
-    },
-    "buzzer": {
-      "type": "buzzer",
-      "bcm": 18,
-      "active_high": true,
-      "description": "active buzzer"
-    },
-    "relay_fan": {
-      "type": "relay",
-      "bcm": 23,
-      "active_high": false,
-      "description": "active-low fan relay"
-    },
-    "button_1": {
-      "type": "button",
-      "bcm": 24,
-      "pull": "up",
-      "description": "button input"
-    }
-  }
-}
-```
-
-Fields:
+Common fields:
 
 | Field | Description |
-|:------|:------------|
-| type | led / buzzer / relay / button |
-| bcm | BCM pin number |
-| active_high | true for active-high, false for active-low |
-| pull | button only, up / down / none |
-| description | Human-readable note for Agents and users |
+|:--|:--|
+| `type` | Device type, supports `led`, `buzzer`, `relay`, `button` |
+| `bcm` | BCM pin number |
+| `physical` | Physical pin number |
+| `active_high` | Output polarity, especially important for relays |
+| `pull` | Button input pull-up, pull-down, or none |
+| `description` | Human-readable note for Agents and users |
 
----
-
-## Pin Registry
-
-The project uses the `pins` field in `config/pins.json` to record actual wiring, instead of hard-coding occupied pins in Python source.
-
-Example:
-
-```json
-{
-  "pins": {
-    "18": {
-      "type": "BCM",
-      "bcm": 18,
-      "physical": 12,
-      "device": "buzzer",
-      "mode": "PWM/output",
-      "owner": "raspberry-pi-skill",
-      "notes": "buzzer IO"
-    }
-  }
-}
-```
-
-View registry:
-
-```bash
-python3 scripts/gpio_control.py --status
-python3 scripts/gpio_control.py --status --json
-```
-
----
-
-## Agent Schema
-
-The project provides JSON Schema files so Agents can understand CLI arguments and JSON outputs:
-
-| File | Content |
-|:----|:--------|
-| [schemas/device_control.schema.json](schemas/device_control.schema.json) | Semantic device actions, arguments, registry format, and JSON output fields for `device_control.py` |
-| [schemas/gpio_control.schema.json](schemas/gpio_control.schema.json) | Actions, arguments, CLI mapping, and JSON output fields for `gpio_control.py` |
-| [schemas/pi_info.schema.json](schemas/pi_info.schema.json) | Call patterns and system information JSON output fields for `pi_info.py` |
-
-Recommended Agent flow:
-
-1. Read `SKILL.md` first
-2. Read the matching `schemas/*.schema.json`
-3. Prefer `scripts/device_control.py --json`
-4. Parse `ok`, `error`, and `warning` from the response
-5. Fall back to low-level `gpio_control.py` only when direct pin control is needed
-
----
+`config/pins.json` is only for local runtime use and wiring notes, and is not committed by default.
 
 ## Testing
 
@@ -415,57 +298,41 @@ python -m py_compile scripts/gpio_control.py scripts/pi_info.py scripts/device_c
 python -m pytest tests -q
 ```
 
-Current tests cover:
+Current test coverage:
 
 - `gpio_control.py --list --json`
 - `gpio_control.py --status --json`
-- JSON error output for `gpio_control.py --pin 17 --json`
+- Error output for `gpio_control.py --pin 17 --json`
 - JSON behavior for `gpio_control.py --pin 17 --read --json` with or without GPIO backend
-- Basic output shape for `pi_info.py --json`
-- `device_control.py --list --json` without GPIO backend
-- JSON errors for missing arguments, unknown devices, and unknown actions
-- JSON error behavior without GPIO backend
-- LED, active-low relay, and button behavior with fake GPIO
-
----
+- Basic structure for `pi_info.py --json`
+- `device_control.py --list --json` behavior without GPIO backend
+- Missing-argument, unknown-device, and unknown-action errors for the semantic layer
+- LED, active-low relay, and button behavior under fake GPIO
 
 ## Hardware Reference
 
 | File | Content |
-|:----|:--------|
+|:--|:--|
 | [references/pinout.md](references/pinout.md) | Complete 40-pin mapping, PWM channels, power pins |
-| [references/hardware.md](references/hardware.md) | Pi 1~5 + Zero SoC / RAM / USB / network / power comparison |
+| [references/hardware.md](references/hardware.md) | SoC, RAM, USB, network, and power comparison for Pi 1 to Pi 5 and Zero |
 
----
+## Project Scope
 
-## Roadmap
+This project only provides a general-purpose hardware skill pack and does not expand into a platform. The following are out of scope:
 
-Version line:
-
-```text
-v0.1 GPIO + pi_info
-v0.2 JSON + Schema + Tests
-v0.3 Device Semantic Skill
-```
-
-Future work is limited to small-scope maintenance for a general skill pack:
-
-- Documentation fixes
-- Schema fixes
-- Test improvements
-- Small device-type additions
-- Compatibility fixes
-- Error-code normalization
-
-Out of scope: daemon, MQTT, Web API, rule engine, automation tasks, remote hardware bridge, platform runtime, and specific Agent framework adapters.
-
----
+- daemon
+- state persistence
+- systemd service
+- MQTT
+- Web API
+- remote control
+- rule engine
+- automation tasks
+- specific Agent framework adapters
 
 ## Contributing
 
 Issues and PRs are welcome. Please open an issue before major changes.
-
----
 
 ## License
 
