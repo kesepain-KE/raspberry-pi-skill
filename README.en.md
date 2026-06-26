@@ -1,3 +1,34 @@
+
+## Dependencies
+
+### Python Packages
+
+```bash
+pip3 install -r requirements.txt
+```
+
+| Package | Purpose | Required |
+|:--------|:--------|:--------:|
+| RPi.GPIO | GPIO pin control | Yes |
+
+### System Tools (Pre-installed on Raspberry Pi OS)
+
+| Command | Purpose |
+|:--------|:--------|
+| vcgencmd | CPU temp/freq/voltage (libraspberrypi-bin) |
+| ip / df / free / cat | Network/disk/memory info |
+
+### Hardware Permission
+
+User must be in the `gpio` group to access `/dev/gpiomem` (default on Raspberry Pi OS).
+
+### Optional
+
+| Dependency | Purpose |
+|:-----------|:--------|
+| wiringpi (C lib + gpio CLI) | Reference only in SKILL.md WiringPi section, not used by scripts |
+
+---
 # raspberry-pi-skill
 
 A Raspberry Pi hardware control skill pack for AI Agents running on the Pi. Covers GPIO control, system monitoring, and hardware reference.

@@ -1,0 +1,5 @@
+# 核心依赖
+RPi.GPIO
+
+# 可选（WiringPi C API，供 SKILL.md WiringPi 章节参考）
+# wiringpi

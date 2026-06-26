@@ -1,3 +1,34 @@
+
+## 依赖
+
+### Python 包
+
+```bash
+pip3 install -r requirements.txt
+```
+
+| 包 | 用途 | 必需 |
+|:----|:----|:----:|
+| RPi.GPIO | GPIO 引脚读写 | 是 |
+
+### 系统工具（Raspberry Pi OS 预装）
+
+| 命令 | 用途 |
+|:----|:----|
+| vcgencmd | CPU 温度/频率/电压（libraspberrypi-bin） |
+| ip / df / free / cat | 网络/磁盘/内存信息 |
+
+### 硬件权限
+
+用户需在 `gpio` 组以访问 `/dev/gpiomem`（Raspberry Pi OS 默认已添加）。
+
+### 可选
+
+| 依赖 | 用途 |
+|:----|:----|
+| wiringpi (C 库 + gpio 命令行) | SKILL.md WiringPi 章节参考用，脚本不依赖 |
+
+---
 # raspberry-pi-skill
 
 树莓派智能体硬件操作技能包。给树莓派上运行的 AI Agent 用的 GPIO 和硬件控制技能。
