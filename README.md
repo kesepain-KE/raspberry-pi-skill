@@ -41,7 +41,7 @@
 
 ## 项目定位
 
-`raspberry-pi-skill` 是面向 AI Agent 的树莓派硬件技能层。它不是完整物联网平台，而是为 `votx-agent` / `kemo-agent` 这类 Agent 提供可读、可执行、可结构化解析的硬件操作入口。
+`raspberry-pi-skill` 是一个面向通用 AI Agent 的树莓派硬件技能包。它只提供技能描述、结构化 CLI、JSON Schema、设备语义封装和硬件参考资料。它不是 IoT 平台、不是后台服务、不是自动化系统，也不绑定任何特定智能体框架。
 
 当前版本定位：
 
@@ -440,11 +440,24 @@ python -m pytest tests -q
 
 ## 路线图
 
-- GPIO backend 抽象：RPi.GPIO / rpi-lgpio / gpiozero / lgpio
-- 更丰富设备层：超声波、舵机、温湿度传感器
-- 常驻 daemon：用于继电器、风扇、灯等需要保持状态的设备
-- 设备状态持久化与远程硬件控制
-- kemo-agent 感知层接入
+版本线：
+
+```text
+v0.1 GPIO + pi_info
+v0.2 JSON + Schema + Tests
+v0.3 Device Semantic Skill
+```
+
+后续只允许围绕通用技能包做小范围维护：
+
+- 文档修正
+- Schema 修正
+- 测试补强
+- 设备类型小范围补充
+- 兼容性修复
+- 错误码统一
+
+不纳入项目边界：daemon、MQTT、Web API、规则系统、自动化任务、远程桥接、平台化运行时、特定 Agent 框架适配。
 
 ---
 

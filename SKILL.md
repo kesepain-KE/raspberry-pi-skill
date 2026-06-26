@@ -7,7 +7,7 @@ description: 树莓派 AI Agent 硬件技能包。覆盖设备语义控制、GPI
 
 ## 定位
 
-这是给树莓派上运行的 AI Agent 使用的硬件技能层。当前版本提供：
+这是一个任何智能体都能读取、理解、调用的树莓派硬件技能包。它只提供技能描述、结构化 CLI、JSON Schema、设备语义封装和硬件参考资料。当前版本提供：
 
 - 设备语义控制：LED、蜂鸣器、继电器、按钮
 - GPIO/PWM/蜂鸣器基础控制
@@ -16,7 +16,7 @@ description: 树莓派 AI Agent 硬件技能包。覆盖设备语义控制、GPI
 - 设备注册表和引脚登记表
 - 40-pin 引脚和硬件参数参考
 
-它不是完整 IoT 平台，也不是成熟硬件控制框架。优先把它当作 Agent 的硬件执行入口。
+它不是 AgentOS、IoT 平台、后台服务、自动化系统、远程硬件桥或智能家居中枢，也不绑定任何特定智能体框架。
 
 ## 兼容性规则
 
@@ -218,7 +218,7 @@ cp config/pins.example.json config/pins.json
 
 - 默认会在单次 GPIO 操作后 cleanup，适合测试、读取、短时 PWM、蜂鸣器
 - `device_control.py` 当前不主动 cleanup，适合 LED/继电器等语义设备保持状态
-- 长期稳定控制建议后续使用常驻 daemon，不建议一直用一次性 CLI 维持状态
+- 本项目不提供 daemon、状态持久化、远程控制或自动化调度；需要这些能力应由上层系统自行实现
 
 ## 引脚参考
 
@@ -323,7 +323,14 @@ python -m pytest tests -q
 
 ## 后续建议
 
-- 增加 GPIO backend 抽象：RPi.GPIO / rpi-lgpio / gpiozero / lgpio
-- 增加更多设备层：超声波、舵机、DHT 传感器
-- 增加常驻 daemon，支持需要保持状态的设备
-- 增加设备状态持久化、远程硬件控制和 kemo-agent 接入
+版本线：
+
+```text
+v0.1 GPIO + pi_info
+v0.2 JSON + Schema + Tests
+v0.3 Device Semantic Skill
+```
+
+后续只做文档修正、Schema 修正、测试补强、设备类型小范围补充、兼容性修复和错误码统一。
+
+不做 daemon、MQTT、Web API、规则系统、自动化任务、远程桥接、平台化运行时或特定 Agent 框架适配。

@@ -41,7 +41,7 @@ Semantic device control, GPIO/PWM, buzzer control, pin registry, system monitori
 
 ## Project Scope
 
-`raspberry-pi-skill` is a Raspberry Pi hardware skill layer for AI Agents. It is not a full IoT platform; it provides readable, executable, and structured hardware operation entries for Agent systems such as `votx-agent` and `kemo-agent`.
+`raspberry-pi-skill` is a Raspberry Pi hardware skill pack for general-purpose AI Agents. It only provides a skill descriptor, structured CLI tools, JSON Schemas, semantic device wrappers, and hardware references. It is not an IoT platform, background service, automation system, remote hardware bridge, or integration layer for any specific Agent framework.
 
 Current scope:
 
@@ -440,11 +440,24 @@ Current tests cover:
 
 ## Roadmap
 
-- GPIO backend abstraction: RPi.GPIO / rpi-lgpio / gpiozero / lgpio
-- More device types: ultrasonic, servo, DHT sensor
-- Long-running daemon for devices that must hold state, such as relays, fans, and lights
-- Device state persistence and remote hardware control
-- kemo-agent perception layer integration
+Version line:
+
+```text
+v0.1 GPIO + pi_info
+v0.2 JSON + Schema + Tests
+v0.3 Device Semantic Skill
+```
+
+Future work is limited to small-scope maintenance for a general skill pack:
+
+- Documentation fixes
+- Schema fixes
+- Test improvements
+- Small device-type additions
+- Compatibility fixes
+- Error-code normalization
+
+Out of scope: daemon, MQTT, Web API, rule engine, automation tasks, remote hardware bridge, platform runtime, and specific Agent framework adapters.
 
 ---
 
