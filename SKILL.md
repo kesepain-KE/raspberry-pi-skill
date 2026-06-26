@@ -72,6 +72,23 @@ python3 scripts/pi_info.py --json
 }
 ```
 
+## Agent Schema
+
+执行脚本前，Agent 可以读取以下协议文件来确认参数和返回结构：
+
+```text
+schemas/gpio_control.schema.json
+schemas/pi_info.schema.json
+```
+
+调用约定：
+
+- GPIO 控制优先使用 `python3 scripts/gpio_control.py ... --json`
+- 系统信息优先使用 `python3 scripts/pi_info.py --json`
+- JSON 返回统一先看 `ok`
+- `ok=false` 时读取 `error` 和 `hint`
+- `warning` 不代表失败，但表示引脚登记冲突或潜在风险
+
 ## 引脚登记表
 
 引脚占用信息不写在 Python 源码里，而是放在本地文件：
@@ -210,6 +227,7 @@ free -h
 ```
 
 ## 硬件参数参考
+- 增加 JSON Schema 和自动测试后，优先保持文档、Schema、CLI 三者同步
 
 详见 [`references/hardware.md`](references/hardware.md)。
 

@@ -31,6 +31,8 @@
 - [引脚登记](#引脚登记)
 - [硬件参考](#硬件参考)
 - [路线图](#路线图)
+- [Agent Schema](#agent-schema)
+- [测试](#测试)
 - [贡献](#贡献)
 - [许可](#许可)
 
@@ -77,6 +79,12 @@ raspberry-pi-skill/
 ├── logo.png                        # 项目 Logo
 ├── requirements.txt                # Pi 3/4 默认 Python 依赖
 ├── requirements-pi5.txt            # Pi 5 兼容依赖建议
+├── schemas/
+│   ├── gpio_control.schema.json     # GPIO CLI 输入/输出协议
+│   └── pi_info.schema.json          # 系统信息 JSON 协议
+├── tests/
+│   ├── test_gpio_control_cli.py      # GPIO CLI 最小回归测试
+│   └── test_pi_info_json.py          # 系统信息 JSON 结构测试
 ├── config/
 │   └── pins.example.json           # 引脚登记示例
 ├── references/
@@ -274,6 +282,49 @@ cp config/pins.example.json config/pins.json
 查看登记：
 
 ```bash
+## Agent Schema
+
+项目提供 JSON Schema，帮助 Agent 理解 CLI 参数和 JSON 返回结构：
+
+| 文件 | 内容 |
+|:----|:----|
+| [schemas/gpio_control.schema.json](schemas/gpio_control.schema.json) | `gpio_control.py` 的动作、参数、CLI 映射、JSON 输出字段 |
+| [schemas/pi_info.schema.json](schemas/pi_info.schema.json) | `pi_info.py` 的调用方式和系统信息 JSON 输出字段 |
+
+Agent 推荐流程：
+
+1. 先读取 `SKILL.md`
+2. 再读取对应 `schemas/*.schema.json`
+3. 执行 CLI 时优先加 `--json`
+4. 解析返回中的 `ok`、`error`、`warning` 字段
+
+---
+
+## 测试
+
+安装测试依赖：
+
+```bash
+pip install -r requirements-dev.txt
+```
+
+运行最小回归测试：
+
+```bash
+python -m py_compile scripts/gpio_control.py scripts/pi_info.py
+python -m pytest tests -q
+```
+
+当前测试覆盖：
+
+- `gpio_control.py --list --json`
+- `gpio_control.py --status --json`
+- `gpio_control.py --pin 17 --json` 错误返回
+- `gpio_control.py --pin 17 --read --json` 在有/无 GPIO 后端时的 JSON 行为
+- `pi_info.py --json` 基础结构
+
+---
+
 python3 scripts/gpio_control.py --status
 python3 scripts/gpio_control.py --status --json
 ```

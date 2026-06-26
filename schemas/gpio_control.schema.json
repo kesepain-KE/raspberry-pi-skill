@@ -1,0 +1,124 @@
+{
+  "name": "gpio_control",
+  "version": "0.2.0",
+  "description": "Agent-friendly Raspberry Pi GPIO CLI protocol. The CLI command is scripts/gpio_control.py and JSON mode is enabled by --json.",
+  "input_schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "gpio_control input",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "action": {
+        "type": "string",
+        "enum": ["list", "status", "read", "write", "pwm", "beep"]
+      },
+      "pin": {
+        "type": "integer",
+        "description": "BCM GPIO number. Required for read/write/pwm/beep."
+      },
+      "value": {
+        "type": "integer",
+        "enum": [0, 1],
+        "description": "LOW=0, HIGH=1. Required for write."
+      },
+      "frequency_hz": {
+        "type": "integer",
+        "minimum": 1,
+        "description": "PWM frequency in Hz. Required for pwm."
+      },
+      "duty_percent": {
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 100,
+        "description": "PWM duty cycle percent. Required for pwm."
+      },
+      "duration_sec": {
+        "type": "number",
+        "minimum": 0,
+        "default": 3.0,
+        "description": "PWM duration in seconds."
+      },
+      "count": {
+        "type": "integer",
+        "minimum": 1,
+        "default": 3,
+        "description": "Buzzer beep count."
+      },
+      "interval_sec": {
+        "type": "number",
+        "minimum": 0,
+        "default": 0.2,
+        "description": "Buzzer on/off interval in seconds."
+      },
+      "keep_state": {
+        "type": "boolean",
+        "default": false,
+        "description": "When true, write will not call GPIO cleanup for the pin."
+      },
+      "config": {
+        "type": "string",
+        "default": "config/pins.json",
+        "description": "Pin registry JSON path."
+      },
+      "json": {
+        "type": "boolean",
+        "default": true,
+        "description": "Use --json output mode. Agents should keep this true."
+      }
+    },
+    "required": ["action"],
+    "allOf": [
+      {
+        "if": {"properties": {"action": {"const": "read"}}},
+        "then": {"required": ["pin"]}
+      },
+      {
+        "if": {"properties": {"action": {"const": "write"}}},
+        "then": {"required": ["pin", "value"]}
+      },
+      {
+        "if": {"properties": {"action": {"const": "pwm"}}},
+        "then": {"required": ["pin", "frequency_hz", "duty_percent"]}
+      },
+      {
+        "if": {"properties": {"action": {"const": "beep"}}},
+        "then": {"required": ["pin"]}
+      }
+    ]
+  },
+  "cli_mapping": {
+    "list": "python3 scripts/gpio_control.py --list --json",
+    "status": "python3 scripts/gpio_control.py --status --json",
+    "read": "python3 scripts/gpio_control.py --pin {pin} --read --json",
+    "write": "python3 scripts/gpio_control.py --pin {pin} --write {value} --json",
+    "write_keep_state": "python3 scripts/gpio_control.py --pin {pin} --write {value} --keep-state --json",
+    "pwm": "python3 scripts/gpio_control.py --pin {pin} --pwm {frequency_hz} {duty_percent} --duration {duration_sec} --json",
+    "beep": "python3 scripts/gpio_control.py --pin {pin} --beep {count} --interval {interval_sec} --json"
+  },
+  "output_schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "gpio_control output",
+    "type": "object",
+    "required": ["ok"],
+    "properties": {
+      "ok": {"type": "boolean"},
+      "error": {"type": "string"},
+      "hint": {"type": "string"},
+      "action": {"type": "string"},
+      "bcm": {"type": "integer"},
+      "physical": {"type": ["integer", "null"]},
+      "value": {"type": "integer"},
+      "level": {"type": "string", "enum": ["HIGH", "LOW"]},
+      "cleanup": {"type": "boolean"},
+      "warning": {"type": ["string", "null"]},
+      "frequency_hz": {"type": "integer"},
+      "duty_percent": {"type": "integer"},
+      "duration_sec": {"type": "number"},
+      "count": {"type": "integer"},
+      "interval_sec": {"type": "number"},
+      "config": {"type": "string"},
+      "pins": {"type": "array"}
+    },
+    "additionalProperties": true
+  }
+}

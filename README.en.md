@@ -31,6 +31,8 @@ GPIO, PWM, buzzer control, pin registry, system monitoring, and JSON-friendly ca
 - [Pin Registry](#pin-registry)
 - [Hardware Reference](#hardware-reference)
 - [Roadmap](#roadmap)
+- [Agent Schema](#agent-schema)
+- [Testing](#testing)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -77,6 +79,12 @@ raspberry-pi-skill/
 ├── logo.png                        # Project logo
 ├── requirements.txt                # Default Python deps for Pi 3/4
 ├── requirements-pi5.txt            # Pi 5 compatibility deps
+├── schemas/
+│   ├── gpio_control.schema.json     # GPIO CLI input/output protocol
+│   └── pi_info.schema.json          # System info JSON protocol
+├── tests/
+│   ├── test_gpio_control_cli.py      # Minimal GPIO CLI regression tests
+│   └── test_pi_info_json.py          # System info JSON shape tests
 ├── config/
 │   └── pins.example.json           # Example pin registry
 ├── references/
@@ -274,6 +282,49 @@ Example:
 View registry:
 
 ```bash
+## Agent Schema
+
+The project provides JSON Schema files so Agents can understand CLI arguments and JSON outputs:
+
+| File | Content |
+|:----|:--------|
+| [schemas/gpio_control.schema.json](schemas/gpio_control.schema.json) | Actions, arguments, CLI mapping, and JSON output fields for `gpio_control.py` |
+| [schemas/pi_info.schema.json](schemas/pi_info.schema.json) | Call patterns and system information JSON output fields for `pi_info.py` |
+
+Recommended Agent flow:
+
+1. Read `SKILL.md` first
+2. Read the matching `schemas/*.schema.json`
+3. Prefer CLI calls with `--json`
+4. Parse `ok`, `error`, and `warning` from the response
+
+---
+
+## Testing
+
+Install test dependencies:
+
+```bash
+pip install -r requirements-dev.txt
+```
+
+Run the minimal regression suite:
+
+```bash
+python -m py_compile scripts/gpio_control.py scripts/pi_info.py
+python -m pytest tests -q
+```
+
+Current tests cover:
+
+- `gpio_control.py --list --json`
+- `gpio_control.py --status --json`
+- JSON error output for `gpio_control.py --pin 17 --json`
+- JSON behavior for `gpio_control.py --pin 17 --read --json` with or without GPIO backend
+- Basic output shape for `pi_info.py --json`
+
+---
+
 python3 scripts/gpio_control.py --status
 python3 scripts/gpio_control.py --status --json
 ```

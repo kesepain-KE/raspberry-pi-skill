@@ -1,0 +1,81 @@
+{
+  "name": "pi_info",
+  "version": "0.2.0",
+  "description": "Raspberry Pi system information collection protocol. The CLI command is scripts/pi_info.py and JSON mode is enabled by --json.",
+  "input_schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "pi_info input",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "json": {
+        "type": "boolean",
+        "default": true,
+        "description": "Use --json output mode. Agents should keep this true."
+      },
+      "watch": {
+        "type": "boolean",
+        "default": false,
+        "description": "Use live watch mode for humans. Agents should keep this false."
+      }
+    }
+  },
+  "cli_mapping": {
+    "json": "python3 scripts/pi_info.py --json",
+    "human": "python3 scripts/pi_info.py",
+    "watch": "python3 scripts/pi_info.py --watch"
+  },
+  "output_schema": {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "title": "pi_info output",
+    "type": "object",
+    "required": ["timestamp", "system", "cpu", "memory", "disk", "network", "gpio"],
+    "properties": {
+      "timestamp": {"type": "string"},
+      "system": {
+        "type": "object",
+        "properties": {
+          "hostname": {"type": "string"},
+          "model": {"type": "string"},
+          "kernel": {"type": "string"},
+          "arch": {"type": "string"},
+          "os": {"type": "string"},
+          "uptime": {"type": "string"}
+        },
+        "additionalProperties": true
+      },
+      "cpu": {
+        "type": "object",
+        "properties": {
+          "temperature": {"type": "string"},
+          "frequency": {"type": "string"},
+          "voltage": {"type": "string"},
+          "throttled": {"type": "string"},
+          "load_avg": {"type": "string"}
+        },
+        "additionalProperties": true
+      },
+      "memory": {
+        "type": "object",
+        "properties": {
+          "total": {"type": "string"},
+          "free": {"type": "string"},
+          "available": {"type": "string"},
+          "swap_total": {"type": "string"},
+          "swap_free": {"type": "string"}
+        },
+        "additionalProperties": true
+      },
+      "disk": {"type": "object", "additionalProperties": true},
+      "network": {"type": "object", "additionalProperties": true},
+      "gpio": {
+        "type": "object",
+        "properties": {
+          "library": {"type": "string"}
+        },
+        "additionalProperties": true
+      }
+    },
+    "additionalProperties": true
+  }
+}
