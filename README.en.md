@@ -10,7 +10,7 @@ A Raspberry Pi hardware control skill pack for AI Agents
   🇬🇧 English · <a href="README.md">🇨🇳 中文</a>
 </p>
 
-GPIO, PWM, buzzer control, pin registry, system monitoring, and JSON-friendly calls for Agents running on Raspberry Pi.
+Semantic device control, GPIO/PWM, buzzer control, pin registry, system monitoring, and JSON-friendly calls for Agents running on Raspberry Pi.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 [![RPi.GPIO](https://img.shields.io/badge/dep-RPi.GPIO-blue)](requirements.txt)
@@ -28,11 +28,12 @@ GPIO, PWM, buzzer control, pin registry, system monitoring, and JSON-friendly ca
 - [Installation](#installation)
 - [Quick Start](#quick-start)
 - [Built-in Scripts](#built-in-scripts)
+- [Device Registry](#device-registry)
 - [Pin Registry](#pin-registry)
-- [Hardware Reference](#hardware-reference)
-- [Roadmap](#roadmap)
 - [Agent Schema](#agent-schema)
 - [Testing](#testing)
+- [Hardware Reference](#hardware-reference)
+- [Roadmap](#roadmap)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -45,14 +46,14 @@ GPIO, PWM, buzzer control, pin registry, system monitoring, and JSON-friendly ca
 Current scope:
 
 ```text
-Skill descriptor + CLI scripts + JSON output + pin registry + hardware references
+Skill descriptor + CLI scripts + semantic device layer + JSON output + Schema + tests + pin/device registry + hardware references
 ```
 
 ---
 
 ## Compatible Models
 
-All Raspberry Pi models with a **40-pin GPIO** header can use the pin references, but runtime GPIO backends differ by board:
+All Raspberry Pi models with a 40-pin GPIO header can use the pin references, but runtime GPIO backends differ by board:
 
 | Model | SoC | RAM | Recommended GPIO backend | Status |
 |:------|:----|:---:|:-------------------------|:------:|
@@ -79,18 +80,28 @@ raspberry-pi-skill/
 ├── logo.png                        # Project logo
 ├── requirements.txt                # Default Python deps for Pi 3/4
 ├── requirements-pi5.txt            # Pi 5 compatibility deps
+├── requirements-dev.txt            # Test dependencies
+├── devices/
+│   ├── common.py                   # Device registry, lazy GPIO loading, unified errors
+│   ├── led.py                      # LED semantic actions
+│   ├── buzzer.py                   # Buzzer semantic actions
+│   ├── relay.py                    # Relay semantic actions with active_low support
+│   └── button.py                   # Button read action
 ├── schemas/
-│   ├── gpio_control.schema.json     # GPIO CLI input/output protocol
-│   └── pi_info.schema.json          # System info JSON protocol
+│   ├── gpio_control.schema.json    # GPIO CLI input/output protocol
+│   ├── pi_info.schema.json         # System info JSON protocol
+│   └── device_control.schema.json  # Semantic device CLI protocol
 ├── tests/
-│   ├── test_gpio_control_cli.py      # Minimal GPIO CLI regression tests
-│   └── test_pi_info_json.py          # System info JSON shape tests
+│   ├── test_gpio_control_cli.py    # Minimal GPIO CLI regression tests
+│   ├── test_pi_info_json.py        # System info JSON shape tests
+│   └── test_device_control_cli.py  # Semantic device layer tests
 ├── config/
-│   └── pins.example.json           # Example pin registry
+│   └── pins.example.json           # Example pin and device registry
 ├── references/
 │   ├── hardware.md                 # Hardware specs comparison
 │   └── pinout.md                   # Complete 40-pin GPIO reference
 └── scripts/
+    ├── device_control.py           # Semantic device control, preferred for Agents
     ├── gpio_control.py             # GPIO control with JSON output
     └── pi_info.py                  # System monitoring with JSON output
 ```
@@ -175,6 +186,21 @@ pip install -r requirements-pi5.txt
 
 ## Quick Start
 
+### Recommended for Agents: semantic device control
+
+```bash
+cp config/pins.example.json config/pins.json
+
+python3 scripts/device_control.py --list --json
+python3 scripts/device_control.py --device bedroom_led --action on --json
+python3 scripts/device_control.py --device bedroom_led --action blink --count 3 --interval 0.2 --json
+python3 scripts/device_control.py --device buzzer --action beep --count 3 --json
+python3 scripts/device_control.py --device relay_fan --action on --json
+python3 scripts/device_control.py --device button_1 --action read --json
+```
+
+### Low-level GPIO control
+
 ```bash
 python3 scripts/pi_info.py
 python3 scripts/pi_info.py --json
@@ -187,7 +213,7 @@ python3 scripts/gpio_control.py --pin 18 --pwm 1000 50
 python3 scripts/gpio_control.py --pin 18 --beep 3
 ```
 
-For Agents, use JSON output:
+Agents should also use JSON output when calling the GPIO layer:
 
 ```bash
 python3 scripts/gpio_control.py --pin 17 --read --json
@@ -198,6 +224,31 @@ python3 scripts/gpio_control.py --status --json
 ---
 
 ## Built-in Scripts
+
+### device_control.py
+
+Semantic device control. Agents control hardware by device name and semantic action instead of memorizing BCM pins.
+
+```bash
+python3 scripts/device_control.py --list --json
+python3 scripts/device_control.py --device bedroom_led --action on --json
+python3 scripts/device_control.py --device bedroom_led --action off --json
+python3 scripts/device_control.py --device bedroom_led --action blink --count 3 --interval 0.2 --json
+python3 scripts/device_control.py --device buzzer --action beep --count 3 --json
+python3 scripts/device_control.py --device relay_fan --action pulse --duration 1 --json
+python3 scripts/device_control.py --device button_1 --action read --json
+```
+
+Supported device types:
+
+| Type | Actions | Description |
+|:-----|:--------|:------------|
+| led | on / off / toggle / blink | LED output |
+| buzzer | on / off / beep | Active buzzer output |
+| relay | on / off / pulse | Relay output with active-low support |
+| button | read | Button input read |
+
+Set `active_high` carefully for relays. Many relay modules are active-low and should use `false`.
 
 ### gpio_control.py
 
@@ -251,15 +302,56 @@ Output: model, OS, CPU temp / freq / voltage / throttling, memory, disk, network
 
 ---
 
+## Device Registry
+
+`config/pins.json` can record both low-level pin occupancy and semantic devices. The device layer reads the `devices` field:
+
+```json
+{
+  "devices": {
+    "bedroom_led": {
+      "type": "led",
+      "bcm": 17,
+      "active_high": true,
+      "description": "bedroom LED"
+    },
+    "buzzer": {
+      "type": "buzzer",
+      "bcm": 18,
+      "active_high": true,
+      "description": "active buzzer"
+    },
+    "relay_fan": {
+      "type": "relay",
+      "bcm": 23,
+      "active_high": false,
+      "description": "active-low fan relay"
+    },
+    "button_1": {
+      "type": "button",
+      "bcm": 24,
+      "pull": "up",
+      "description": "button input"
+    }
+  }
+}
+```
+
+Fields:
+
+| Field | Description |
+|:------|:------------|
+| type | led / buzzer / relay / button |
+| bcm | BCM pin number |
+| active_high | true for active-high, false for active-low |
+| pull | button only, up / down / none |
+| description | Human-readable note for Agents and users |
+
+---
+
 ## Pin Registry
 
-The project uses `config/pins.json` to record actual wiring, instead of hard-coding occupied pins in Python source.
-
-Create local registry:
-
-```bash
-cp config/pins.example.json config/pins.json
-```
+The project uses the `pins` field in `config/pins.json` to record actual wiring, instead of hard-coding occupied pins in Python source.
 
 Example:
 
@@ -282,12 +374,19 @@ Example:
 View registry:
 
 ```bash
+python3 scripts/gpio_control.py --status
+python3 scripts/gpio_control.py --status --json
+```
+
+---
+
 ## Agent Schema
 
 The project provides JSON Schema files so Agents can understand CLI arguments and JSON outputs:
 
 | File | Content |
 |:----|:--------|
+| [schemas/device_control.schema.json](schemas/device_control.schema.json) | Semantic device actions, arguments, registry format, and JSON output fields for `device_control.py` |
 | [schemas/gpio_control.schema.json](schemas/gpio_control.schema.json) | Actions, arguments, CLI mapping, and JSON output fields for `gpio_control.py` |
 | [schemas/pi_info.schema.json](schemas/pi_info.schema.json) | Call patterns and system information JSON output fields for `pi_info.py` |
 
@@ -295,8 +394,9 @@ Recommended Agent flow:
 
 1. Read `SKILL.md` first
 2. Read the matching `schemas/*.schema.json`
-3. Prefer CLI calls with `--json`
+3. Prefer `scripts/device_control.py --json`
 4. Parse `ok`, `error`, and `warning` from the response
+5. Fall back to low-level `gpio_control.py` only when direct pin control is needed
 
 ---
 
@@ -311,7 +411,7 @@ pip install -r requirements-dev.txt
 Run the minimal regression suite:
 
 ```bash
-python -m py_compile scripts/gpio_control.py scripts/pi_info.py
+python -m py_compile scripts/gpio_control.py scripts/pi_info.py scripts/device_control.py devices/*.py
 python -m pytest tests -q
 ```
 
@@ -322,12 +422,10 @@ Current tests cover:
 - JSON error output for `gpio_control.py --pin 17 --json`
 - JSON behavior for `gpio_control.py --pin 17 --read --json` with or without GPIO backend
 - Basic output shape for `pi_info.py --json`
-
----
-
-python3 scripts/gpio_control.py --status
-python3 scripts/gpio_control.py --status --json
-```
+- `device_control.py --list --json` without GPIO backend
+- JSON errors for missing arguments, unknown devices, and unknown actions
+- JSON error behavior without GPIO backend
+- LED, active-low relay, and button behavior with fake GPIO
 
 ---
 
@@ -343,9 +441,10 @@ python3 scripts/gpio_control.py --status --json
 ## Roadmap
 
 - GPIO backend abstraction: RPi.GPIO / rpi-lgpio / gpiozero / lgpio
-- Device layer: LED, buzzer, relay, button, ultrasonic, servo, DHT sensor
+- More device types: ultrasonic, servo, DHT sensor
 - Long-running daemon for devices that must hold state, such as relays, fans, and lights
-- More complete error codes and tests
+- Device state persistence and remote hardware control
+- kemo-agent perception layer integration
 
 ---
 

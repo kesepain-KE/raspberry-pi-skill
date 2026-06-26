@@ -1,0 +1,127 @@
+{
+  "name": "device_control",
+  "version": "0.3.0",
+  "description": "Agent-friendly semantic device control CLI for Raspberry Pi.",
+  "script": "scripts/device_control.py",
+  "config": "config/pins.json",
+  "commands": [
+    {
+      "name": "list_devices",
+      "example": "python3 scripts/device_control.py --list --json",
+      "requires_gpio": false
+    },
+    {
+      "name": "device_action",
+      "example": "python3 scripts/device_control.py --device bedroom_led --action on --json",
+      "requires_gpio": true
+    }
+  ],
+  "arguments": {
+    "list": {
+      "cli": "--list",
+      "type": "boolean",
+      "description": "List registered semantic devices."
+    },
+    "device": {
+      "cli": "--device",
+      "type": "string",
+      "description": "Device registry name, for example bedroom_led, buzzer, relay_fan, button_1."
+    },
+    "action": {
+      "cli": "--action",
+      "type": "string",
+      "enum_by_type": {
+        "led": ["on", "off", "toggle", "blink"],
+        "buzzer": ["on", "off", "beep"],
+        "relay": ["on", "off", "pulse"],
+        "button": ["read"]
+      }
+    },
+    "count": {
+      "cli": "--count",
+      "type": "integer",
+      "default": 3,
+      "description": "Repeat count for blink or beep."
+    },
+    "interval": {
+      "cli": "--interval",
+      "type": "number",
+      "default": 0.2,
+      "description": "Interval seconds for blink or beep."
+    },
+    "duration": {
+      "cli": "--duration",
+      "type": "number",
+      "default": 1.0,
+      "description": "Duration seconds for relay pulse."
+    },
+    "config": {
+      "cli": "--config",
+      "type": "path",
+      "default": "config/pins.json"
+    },
+    "json": {
+      "cli": "--json",
+      "type": "boolean",
+      "recommended_for_agent": true
+    }
+  },
+  "device_registry_schema": {
+    "devices": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["type", "bcm"],
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": ["led", "buzzer", "relay", "button"]
+          },
+          "bcm": {
+            "type": "integer"
+          },
+          "active_high": {
+            "type": "boolean",
+            "default": true
+          },
+          "pull": {
+            "type": "string",
+            "enum": ["up", "down", "none"]
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "output_success": {
+    "type": "object",
+    "required": ["ok", "device", "type", "action", "bcm"],
+    "properties": {
+      "ok": {"const": true},
+      "device": {"type": "string"},
+      "type": {"enum": ["led", "buzzer", "relay", "button"]},
+      "action": {"type": "string"},
+      "bcm": {"type": "integer"},
+      "physical": {"type": ["integer", "null"]},
+      "state": {"type": "string"},
+      "value": {"type": "integer"},
+      "level": {"enum": ["HIGH", "LOW"]},
+      "pressed": {"type": "boolean"},
+      "active_high": {"type": "boolean"},
+      "warning": {"type": ["string", "null"]}
+    }
+  },
+  "output_error": {
+    "type": "object",
+    "required": ["ok", "error"],
+    "properties": {
+      "ok": {"const": false},
+      "error": {"type": "string"},
+      "hint": {"type": "string"},
+      "device": {"type": "string"},
+      "available": {"type": "array", "items": {"type": "string"}}
+    }
+  }
+}

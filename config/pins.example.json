@@ -17,5 +17,31 @@
       "owner": "manual",
       "notes": "示例电源占用记录；按你的实际接线修改或删除"
     }
+  },
+  "devices": {
+    "bedroom_led": {
+      "type": "led",
+      "bcm": 17,
+      "active_high": true,
+      "description": "示例 LED"
+    },
+    "buzzer": {
+      "type": "buzzer",
+      "bcm": 18,
+      "active_high": true,
+      "description": "示例有源蜂鸣器"
+    },
+    "relay_fan": {
+      "type": "relay",
+      "bcm": 23,
+      "active_high": false,
+      "description": "示例低电平触发继电器"
+    },
+    "button_1": {
+      "type": "button",
+      "bcm": 24,
+      "pull": "up",
+      "description": "示例按钮输入"
+    }
   }
 }

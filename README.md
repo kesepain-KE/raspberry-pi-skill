@@ -10,7 +10,7 @@
   🇨🇳 中文 · <a href="README.en.md">🇬🇧 English</a>
 </p>
 
-给树莓派上运行的 AI Agent 使用的 GPIO 和硬件控制技能，覆盖引脚读写、PWM、蜂鸣器、引脚登记、系统监控与结构化 JSON 调用。
+给树莓派上运行的 AI Agent 使用的 GPIO 和硬件控制技能，覆盖设备语义控制、GPIO/PWM、蜂鸣器、引脚登记、系统监控与结构化 JSON 调用。
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 [![RPi.GPIO](https://img.shields.io/badge/dep-RPi.GPIO-blue)](requirements.txt)
@@ -28,11 +28,12 @@
 - [安装](#安装)
 - [快速开始](#快速开始)
 - [内置脚本](#内置脚本)
+- [设备注册表](#设备注册表)
 - [引脚登记](#引脚登记)
-- [硬件参考](#硬件参考)
-- [路线图](#路线图)
 - [Agent Schema](#agent-schema)
 - [测试](#测试)
+- [硬件参考](#硬件参考)
+- [路线图](#路线图)
 - [贡献](#贡献)
 - [许可](#许可)
 
@@ -45,14 +46,14 @@
 当前版本定位：
 
 ```text
-Skill 描述 + CLI 脚本 + JSON 输出 + 引脚登记 + 硬件资料库
+Skill 描述 + CLI 脚本 + 设备语义层 + JSON 输出 + Schema + 测试 + 引脚/设备登记 + 硬件资料库
 ```
 
 ---
 
 ## 适用型号
 
-所有 **40-pin GPIO** 的树莓派型号均可参考本项目的引脚资料，但 GPIO 运行后端有差异：
+所有 40-pin GPIO 的树莓派型号均可参考本项目的引脚资料，但 GPIO 运行后端有差异：
 
 | 型号 | 处理器 | RAM | GPIO 后端建议 | 状态 |
 |:----|:------|:---:|:-------------|:----:|
@@ -79,23 +80,33 @@ raspberry-pi-skill/
 ├── logo.png                        # 项目 Logo
 ├── requirements.txt                # Pi 3/4 默认 Python 依赖
 ├── requirements-pi5.txt            # Pi 5 兼容依赖建议
+├── requirements-dev.txt            # 测试依赖
+├── devices/
+│   ├── common.py                   # 设备注册、GPIO 懒加载、统一错误
+│   ├── led.py                      # LED 语义动作
+│   ├── buzzer.py                   # 蜂鸣器语义动作
+│   ├── relay.py                    # 继电器语义动作，支持 active_low
+│   └── button.py                   # 按钮读取
 ├── schemas/
-│   ├── gpio_control.schema.json     # GPIO CLI 输入/输出协议
-│   └── pi_info.schema.json          # 系统信息 JSON 协议
+│   ├── gpio_control.schema.json    # GPIO CLI 输入/输出协议
+│   ├── pi_info.schema.json         # 系统信息 JSON 协议
+│   └── device_control.schema.json  # 设备语义 CLI 协议
 ├── tests/
-│   ├── test_gpio_control_cli.py      # GPIO CLI 最小回归测试
-│   └── test_pi_info_json.py          # 系统信息 JSON 结构测试
+│   ├── test_gpio_control_cli.py    # GPIO CLI 最小回归测试
+│   ├── test_pi_info_json.py        # 系统信息 JSON 结构测试
+│   └── test_device_control_cli.py  # 设备语义层测试
 ├── config/
-│   └── pins.example.json           # 引脚登记示例
+│   └── pins.example.json           # 引脚和设备登记示例
 ├── references/
 │   ├── hardware.md                 # 全系列硬件参数对照表
 │   └── pinout.md                   # 40-pin 完整引脚对照表
 └── scripts/
+    ├── device_control.py           # 设备语义控制脚本，推荐 Agent 优先使用
     ├── gpio_control.py             # GPIO 控制脚本，支持 JSON 输出
     └── pi_info.py                  # 系统状态监控脚本，支持 JSON 输出
 ```
 
-`config/pins.json` 是本地运行时引脚登记文件，已被 `.gitignore` 忽略。需要时从示例复制：
+`config/pins.json` 是本地运行时登记文件，已被 `.gitignore` 忽略。需要时从示例复制：
 
 ```bash
 cp config/pins.example.json config/pins.json
@@ -175,6 +186,21 @@ pip install -r requirements-pi5.txt
 
 ## 快速开始
 
+### Agent 推荐：设备语义控制
+
+```bash
+cp config/pins.example.json config/pins.json
+
+python3 scripts/device_control.py --list --json
+python3 scripts/device_control.py --device bedroom_led --action on --json
+python3 scripts/device_control.py --device bedroom_led --action blink --count 3 --interval 0.2 --json
+python3 scripts/device_control.py --device buzzer --action beep --count 3 --json
+python3 scripts/device_control.py --device relay_fan --action on --json
+python3 scripts/device_control.py --device button_1 --action read --json
+```
+
+### 底层 GPIO 控制
+
 ```bash
 python3 scripts/pi_info.py
 python3 scripts/pi_info.py --json
@@ -187,7 +213,7 @@ python3 scripts/gpio_control.py --pin 18 --pwm 1000 50
 python3 scripts/gpio_control.py --pin 18 --beep 3
 ```
 
-Agent 推荐使用 JSON 输出：
+Agent 调 GPIO 层也应使用 JSON 输出：
 
 ```bash
 python3 scripts/gpio_control.py --pin 17 --read --json
@@ -198,6 +224,31 @@ python3 scripts/gpio_control.py --status --json
 ---
 
 ## 内置脚本
+
+### device_control.py
+
+设备语义控制脚本。Agent 优先通过设备名和语义动作控制硬件，不必长期记 BCM 编号。
+
+```bash
+python3 scripts/device_control.py --list --json
+python3 scripts/device_control.py --device bedroom_led --action on --json
+python3 scripts/device_control.py --device bedroom_led --action off --json
+python3 scripts/device_control.py --device bedroom_led --action blink --count 3 --interval 0.2 --json
+python3 scripts/device_control.py --device buzzer --action beep --count 3 --json
+python3 scripts/device_control.py --device relay_fan --action pulse --duration 1 --json
+python3 scripts/device_control.py --device button_1 --action read --json
+```
+
+支持设备类型：
+
+| 类型 | 动作 | 说明 |
+|:----|:----|:----|
+| led | on / off / toggle / blink | LED 输出 |
+| buzzer | on / off / beep | 有源蜂鸣器输出 |
+| relay | on / off / pulse | 继电器输出，支持低电平触发 |
+| button | read | 按钮输入读取 |
+
+继电器请正确设置 `active_high`。很多继电器模块是低电平触发，应配置为 `false`。
 
 ### gpio_control.py
 
@@ -251,15 +302,56 @@ python3 scripts/pi_info.py --watch
 
 ---
 
+## 设备注册表
+
+`config/pins.json` 可以同时记录底层引脚占用和设备语义信息。设备层读取 `devices` 字段：
+
+```json
+{
+  "devices": {
+    "bedroom_led": {
+      "type": "led",
+      "bcm": 17,
+      "active_high": true,
+      "description": "卧室 LED"
+    },
+    "buzzer": {
+      "type": "buzzer",
+      "bcm": 18,
+      "active_high": true,
+      "description": "有源蜂鸣器"
+    },
+    "relay_fan": {
+      "type": "relay",
+      "bcm": 23,
+      "active_high": false,
+      "description": "低电平触发风扇继电器"
+    },
+    "button_1": {
+      "type": "button",
+      "bcm": 24,
+      "pull": "up",
+      "description": "按钮输入"
+    }
+  }
+}
+```
+
+字段说明：
+
+| 字段 | 说明 |
+|:----|:----|
+| type | led / buzzer / relay / button |
+| bcm | BCM 引脚编号 |
+| active_high | true 表示高电平触发，false 表示低电平触发 |
+| pull | button 专用，up / down / none |
+| description | 给 Agent 和用户看的说明 |
+
+---
+
 ## 引脚登记
 
-项目使用 `config/pins.json` 记录用户实际接线，避免把占用信息写死在 Python 源码里。
-
-创建本地登记文件：
-
-```bash
-cp config/pins.example.json config/pins.json
-```
+项目使用 `config/pins.json` 的 `pins` 字段记录用户实际接线，避免把占用信息写死在 Python 源码里。
 
 示例：
 
@@ -282,12 +374,19 @@ cp config/pins.example.json config/pins.json
 查看登记：
 
 ```bash
+python3 scripts/gpio_control.py --status
+python3 scripts/gpio_control.py --status --json
+```
+
+---
+
 ## Agent Schema
 
 项目提供 JSON Schema，帮助 Agent 理解 CLI 参数和 JSON 返回结构：
 
 | 文件 | 内容 |
 |:----|:----|
+| [schemas/device_control.schema.json](schemas/device_control.schema.json) | `device_control.py` 的设备语义动作、参数、注册表和返回字段 |
 | [schemas/gpio_control.schema.json](schemas/gpio_control.schema.json) | `gpio_control.py` 的动作、参数、CLI 映射、JSON 输出字段 |
 | [schemas/pi_info.schema.json](schemas/pi_info.schema.json) | `pi_info.py` 的调用方式和系统信息 JSON 输出字段 |
 
@@ -295,8 +394,9 @@ Agent 推荐流程：
 
 1. 先读取 `SKILL.md`
 2. 再读取对应 `schemas/*.schema.json`
-3. 执行 CLI 时优先加 `--json`
+3. 优先使用 `scripts/device_control.py --json`
 4. 解析返回中的 `ok`、`error`、`warning` 字段
+5. 只有需要直接操作引脚时，再退到底层 `gpio_control.py`
 
 ---
 
@@ -311,7 +411,7 @@ pip install -r requirements-dev.txt
 运行最小回归测试：
 
 ```bash
-python -m py_compile scripts/gpio_control.py scripts/pi_info.py
+python -m py_compile scripts/gpio_control.py scripts/pi_info.py scripts/device_control.py devices/*.py
 python -m pytest tests -q
 ```
 
@@ -322,12 +422,10 @@ python -m pytest tests -q
 - `gpio_control.py --pin 17 --json` 错误返回
 - `gpio_control.py --pin 17 --read --json` 在有/无 GPIO 后端时的 JSON 行为
 - `pi_info.py --json` 基础结构
-
----
-
-python3 scripts/gpio_control.py --status
-python3 scripts/gpio_control.py --status --json
-```
+- `device_control.py --list --json` 不依赖 GPIO
+- 设备语义层缺少参数、未知设备、未知动作的 JSON 错误
+- 无 GPIO 后端时的 JSON 错误
+- fake GPIO 下的 LED、active_low 继电器、按钮读取行为
 
 ---
 
@@ -343,9 +441,10 @@ python3 scripts/gpio_control.py --status --json
 ## 路线图
 
 - GPIO backend 抽象：RPi.GPIO / rpi-lgpio / gpiozero / lgpio
-- 设备层：LED、蜂鸣器、继电器、按钮、超声波、舵机、温湿度传感器
+- 更丰富设备层：超声波、舵机、温湿度传感器
 - 常驻 daemon：用于继电器、风扇、灯等需要保持状态的设备
-- 更完整的错误码和测试用例
+- 设备状态持久化与远程硬件控制
+- kemo-agent 感知层接入
 
 ---
 
