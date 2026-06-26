@@ -6,6 +6,10 @@
 
 A Raspberry Pi hardware control skill pack for AI Agents
 
+<p>
+  🇬🇧 English · <a href="README.md">🇨🇳 中文</a>
+</p>
+
 Covers GPIO pin control, PWM, sensor wiring, and system monitoring for Agents running on the Pi.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green)](LICENSE)

@@ -6,6 +6,10 @@
 
 树莓派智能体硬件操作技能包
 
+<p>
+  🇨🇳 中文 · <a href="README.en.md">🇬🇧 English</a>
+</p>
+
 给树莓派上运行的 AI Agent 使用的 GPIO 和硬件控制技能，覆盖引脚读写、PWM、传感器接线、系统监控。
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green)](LICENSE)
