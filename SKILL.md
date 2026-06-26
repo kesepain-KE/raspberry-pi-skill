@@ -1,13 +1,30 @@
 ---
 name: raspberry-pi
-description: 树莓派通用操作指南。覆盖 GPIO 引脚对接、RPi.GPIO 编程、I2C/SPI/UART 接口启用、PWM 控制、传感器/执行器接线、系统监控、引脚查询。当需要在树莓派上接外设、控制 GPIO、读写传感器、驱动蜂鸣器/LED/电机、查看系统状态或查询引脚定义时触发。适用于 Pi 3B/3B+/4B/5。
+description: 树莓派 AI Agent 硬件技能包。覆盖 GPIO 引脚读写、PWM、蜂鸣器、引脚登记、系统状态采集、40-pin 引脚查询、I2C/SPI/UART 启用参考。优先用于 Pi 3B/3B+/4B/Zero；Pi 5 需使用 rpi-lgpio/gpiozero/lgpio 后端，不保证原生 RPi.GPIO 可用。
 ---
 
-# 树莓派通用操作指南
+# 树莓派 AI Agent 硬件技能包
+
+## 定位
+
+这是给树莓派上运行的 AI Agent 使用的硬件技能层。当前版本提供：
+
+- GPIO/PWM/蜂鸣器基础控制
+- 系统状态采集
+- JSON 结构化输出
+- 引脚登记表
+- 40-pin 引脚和硬件参数参考
+
+它不是完整 IoT 平台，也不是成熟硬件控制框架。优先把它当作 Agent 的硬件执行入口。
+
+## 兼容性规则
+
+- Pi 3B / 3B+ / 4B / Zero：默认使用 `RPi.GPIO`
+- Pi 5：原生 `RPi.GPIO` 不保证可用，建议安装 `requirements-pi5.txt` 中的 `rpi-lgpio` / `gpiozero`
+- 所有 GPIO 操作默认使用 BCM 编号
+- 接线前必须核对电压：GPIO 是 3.3V 逻辑，不可直接输入 5V 信号
 
 ## 内置工具脚本
-
-技能目录下有两个一键脚本，优先使用：
 
 ### 系统监控 — `scripts/pi_info.py`
 
@@ -17,42 +34,98 @@ python3 scripts/pi_info.py --json     # JSON 输出
 python3 scripts/pi_info.py --watch    # 实时刷新（每 2 秒）
 ```
 
-输出：CPU 温度/频率/电压/限频标志、内存、磁盘、网络状态。
+输出：型号、系统、CPU 温度/频率/电压/限频标志、内存、磁盘、网络状态、GPIO 库版本。
 
 ### GPIO 控制 — `scripts/gpio_control.py`
 
 ```bash
-python3 scripts/gpio_control.py --list              # 完整引脚对照表
-python3 scripts/gpio_control.py --status            # 已用引脚
-python3 scripts/gpio_control.py --pin 17 --read     # 读取引脚
-python3 scripts/gpio_control.py --pin 17 --write 1  # 写高电平
-python3 scripts/gpio_control.py --pin 18 --pwm 1000 50  # PWM（频率 占空比）
-python3 scripts/gpio_control.py --pin 18 --beep 3   # 蜂鸣器响 N 次
+python3 scripts/gpio_control.py --list
+python3 scripts/gpio_control.py --status
+python3 scripts/gpio_control.py --pin 17 --read
+python3 scripts/gpio_control.py --pin 17 --write 1
+python3 scripts/gpio_control.py --pin 17 --write 1 --keep-state
+python3 scripts/gpio_control.py --pin 18 --pwm 1000 50 --duration 3
+python3 scripts/gpio_control.py --pin 18 --beep 3 --interval 0.2
 ```
 
-脚本内置冲突检测，`--status` 可查看当前已用引脚。
+Agent 调用时优先加 `--json`：
 
-## 核心规则
+```bash
+python3 scripts/gpio_control.py --pin 17 --read --json
+python3 scripts/gpio_control.py --pin 17 --write 1 --json
+python3 scripts/gpio_control.py --status --json
+python3 scripts/pi_info.py --json
+```
 
-1. **所有 GPIO 操作用 BCM 编号**（`GPIO.setmode(GPIO.BCM)`）
-2. **用完后必须 `GPIO.cleanup()`**，避免引脚占用冲突
-3. **建议将用户加入 `gpio` 组**以直接访问 `/dev/gpiomem`（无需 sudo）
-4. **I2C、SPI、UART 默认未启用**，启用需改 `/boot/firmware/config.txt` 并重启
-5. **操作完清理临时脚本**（`tmp/` 下的 .py）
+`gpio_control.py` 的 JSON 返回示例：
+
+```json
+{
+  "ok": true,
+  "action": "write",
+  "bcm": 17,
+  "physical": 11,
+  "value": 1,
+  "level": "HIGH",
+  "cleanup": true,
+  "warning": null
+}
+```
+
+## 引脚登记表
+
+引脚占用信息不写在 Python 源码里，而是放在本地文件：
+
+```text
+config/pins.json
+```
+
+该文件默认不提交到 Git。创建方式：
+
+```bash
+cp config/pins.example.json config/pins.json
+```
+
+示例：
+
+```json
+{
+  "pins": {
+    "18": {
+      "type": "BCM",
+      "bcm": 18,
+      "physical": 12,
+      "device": "buzzer",
+      "mode": "PWM/output",
+      "owner": "raspberry-pi-skill",
+      "notes": "蜂鸣器 IO"
+    }
+  }
+}
+```
+
+注意：这是手动登记表，用于提醒 Agent 和用户避免接线冲突，不是真正的系统级实时占用扫描。
 
 ## 操作流程
 
-1. SSH 到树莓派（或本地终端）
-2. 复制脚本到目标目录或用相对路径执行
-3. 先 `python3 pi_info.py` 查看系统状态
-4. 再 `python3 gpio_control.py --status` 查看引脚占用
-5. 查引脚表确认可用引脚后操作
+1. 先查看系统状态：`python3 scripts/pi_info.py --json`
+2. 查看引脚表：`python3 scripts/gpio_control.py --list`
+3. 查看登记占用：`python3 scripts/gpio_control.py --status --json`
+4. 确认 BCM 编号和物理引脚
+5. 执行读取、写入、PWM 或蜂鸣器操作
+6. 需要持续保持电平时才使用 `--keep-state`
+
+## cleanup 策略
+
+- 默认会在单次 GPIO 操作后 cleanup，适合测试、读取、短时 PWM、蜂鸣器
+- `--keep-state` 会跳过 cleanup，适合继电器、风扇、灯等需要保持电平的场景
+- 长期稳定控制建议后续使用常驻 daemon，不建议一直用一次性 CLI 维持状态
 
 ## 引脚参考
 
 完整 40 引脚对照表详见 [`references/pinout.md`](references/pinout.md)。
 
-### 推荐空闲引脚
+推荐空闲引脚：
 
 | 类型 | BCM 引脚（物理引脚） |
 |:----:|:-------------------:|
@@ -61,47 +134,6 @@ python3 scripts/gpio_control.py --pin 18 --beep 3   # 蜂鸣器响 N 次
 | GND | 引脚 9, 14, 20, 25, 30, 34, 39 |
 | 5V | 引脚 2, 4 |
 | 3.3V | 引脚 1, 17 |
-
-### 已用引脚记录模板
-
-建议维护表格记录已占用引脚：
-
-| 物理引脚 | BCM | 类型 | 用途 |
-|:-------:|:---:|:----:|:----:|
-| （示例）12 | 18 | PWM0 | 蜂鸣器 |
-
-用 `python3 gpio_control.py --status` 查看。
-
-## RPi.GPIO 编程模板
-
-### GPIO 输出（LED/继电器/蜂鸣器）
-
-```python
-import RPi.GPIO as GPIO
-GPIO.setmode(GPIO.BCM)
-GPIO.setup(17, GPIO.OUT)
-GPIO.output(17, GPIO.HIGH)   # 高电平
-GPIO.output(17, GPIO.LOW)    # 低电平
-GPIO.cleanup()
-```
-
-### PWM 输出
-
-```python
-p = GPIO.PWM(18, 1000)  # 频率 Hz
-p.start(50)              # 占空比 0-100
-p.ChangeFrequency(440)
-p.ChangeDutyCycle(30)
-p.stop()
-```
-
-### GPIO 输入（按钮/传感器）
-
-```python
-GPIO.setup(17, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-if GPIO.input(17) == GPIO.LOW:
-    print("触发")
-```
 
 ## 启用额外接口
 
@@ -121,79 +153,69 @@ ls /dev/i2c* /dev/spi* /dev/ttyAMA0 /dev/ttyS0 2>/dev/null
 lsmod | grep -E "i2c|spi|uart"
 ```
 
+## RPi.GPIO 编程模板
+
+### GPIO 输出
+
+```python
+import RPi.GPIO as GPIO
+GPIO.setmode(GPIO.BCM)
+GPIO.setup(17, GPIO.OUT)
+GPIO.output(17, GPIO.HIGH)
+GPIO.output(17, GPIO.LOW)
+GPIO.cleanup()
+```
+
+### PWM 输出
+
+```python
+p = GPIO.PWM(18, 1000)
+p.start(50)
+p.ChangeFrequency(440)
+p.ChangeDutyCycle(30)
+p.stop()
+GPIO.cleanup()
+```
+
+### GPIO 输入
+
+```python
+GPIO.setup(17, GPIO.IN, pull_up_down=GPIO.PUD_UP)
+if GPIO.input(17) == GPIO.LOW:
+    print("触发")
+```
+
 ## WiringPi 操作参考
 
-如果安装了 WiringPi：
-
-### 命令行
+WiringPi 只作为参考，不是脚本依赖。
 
 ```bash
-gpio readall                    # 引脚对照表（wPi/BCM/物理）
-gpio read 0                     # wPi 0（BCM 17）
-gpio write 0 1                  # 写高电平
-gpio mode 0 out                 # 设为输出
-gpio pwm 1 500                  # wPi 1（BCM 18）PWM
+gpio readall
+gpio read 0
+gpio write 0 1
+gpio mode 0 out
+gpio pwm 1 500
 ```
-
-### WiringPi 引脚速查
-
-| wPi | BCM | 物理 | 功能 |
-|:---:|:---:|:----:|:----:|
-| 0 | 17 | 11 | GPIO |
-| 1 | 18 | 12 | PWM0 |
-| 2 | 27 | 13 | GPIO |
-| 3 | 22 | 15 | GPIO |
-| 4 | 23 | 16 | GPIO |
-| 5 | 24 | 18 | GPIO |
-| 6 | 25 | 22 | GPIO |
-| 7 | 4 | 7 | GPIO |
-| 8 | 2 | 3 | I2C SDA |
-| 9 | 3 | 5 | I2C SCL |
-
-### C 语言编程
-
-```c
-#include <wiringPi.h>
-int main(void) {
-    wiringPiSetupGpio();          // BCM 编号
-    pinMode(17, OUTPUT);
-    digitalWrite(17, HIGH);
-    pinMode(18, PWM_OUTPUT);
-    pwmWrite(18, 500);            // 占空比 0-1024
-    return 0;
-}
-```
-
-编译：`gcc -o myapp myapp.c -l wiringPi`
 
 ## 系统常用命令
 
 ```bash
-vcgencmd measure_temp               # 温度
-vcgencmd measure_clock arm          # CPU 频率
-vcgencmd get_throttled              # 限频/低压标志
-pinout                              # GPIO 引脚图
-ip -br addr                         # 网络接口
-df -h                               # 磁盘
-free -h                             # 内存
+vcgencmd measure_temp
+vcgencmd measure_clock arm
+vcgencmd get_throttled
+pinout
+ip -br addr
+df -h
+free -h
 ```
 
 ## 硬件参数参考
 
 详见 [`references/hardware.md`](references/hardware.md)。
 
-各型号关键差异：
+## 后续建议
 
-| 型号 | SoC | RAM | 最高频率 |
-|:----|:----|:---:|:--------:|
-| Pi 3B | BCM2837 (Cortex-A53) | 1GB | 1.2GHz |
-| Pi 3B+ | BCM2837B0 (Cortex-A53) | 1GB | 1.4GHz |
-| Pi 4B | BCM2711 (Cortex-A72) | 1-8GB | 1.8GHz |
-| Pi 5 | BCM2712 (Cortex-A76) | 4-8GB | 2.4GHz |
-
-## 注意事项
-
-- 脚本依赖 `RPi.GPIO`：`pip3 install RPi.GPIO`
-- 所有脚本默认 BCM 编号模式
-- 接外设前确认引脚电压（3.3V vs 5V）
-- 同一引脚不要同时被 RPi.GPIO 和 WiringPi 操作
+- 增加 GPIO backend 抽象：RPi.GPIO / rpi-lgpio / gpiozero / lgpio
+- 增加设备层：LED、蜂鸣器、继电器、按钮、超声波、舵机、DHT 传感器
+- 增加常驻 daemon，支持需要保持状态的设备
+- 增加错误码、模拟测试和 Agent tool schema

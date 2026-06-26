@@ -1,0 +1,6 @@
+# Raspberry Pi 5 compatibility option: RPi.GPIO-compatible layer backed by lgpio.
+# Install on Raspberry Pi 5 instead of plain RPi.GPIO.
+rpi-lgpio
+
+# Optional high-level GPIO API for device-layer features.
+gpiozero

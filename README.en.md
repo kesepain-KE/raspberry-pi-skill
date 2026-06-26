@@ -10,7 +10,7 @@ A Raspberry Pi hardware control skill pack for AI Agents
   🇬🇧 English · <a href="README.md">🇨🇳 中文</a>
 </p>
 
-Covers GPIO pin control, PWM, sensor wiring, and system monitoring for Agents running on the Pi.
+GPIO, PWM, buzzer control, pin registry, system monitoring, and JSON-friendly calls for Agents running on Raspberry Pi.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 [![RPi.GPIO](https://img.shields.io/badge/dep-RPi.GPIO-blue)](requirements.txt)
@@ -21,49 +21,76 @@ Covers GPIO pin control, PWM, sensor wiring, and system monitoring for Agents ru
 
 ## Table of Contents
 
+- [Project Scope](#project-scope)
 - [Compatible Models](#compatible-models)
 - [File Structure](#file-structure)
 - [Dependencies](#dependencies)
+- [Installation](#installation)
 - [Quick Start](#quick-start)
 - [Built-in Scripts](#built-in-scripts)
+- [Pin Registry](#pin-registry)
 - [Hardware Reference](#hardware-reference)
+- [Roadmap](#roadmap)
 - [Contributing](#contributing)
 - [License](#license)
 
 ---
 
+## Project Scope
+
+`raspberry-pi-skill` is a Raspberry Pi hardware skill layer for AI Agents. It is not a full IoT platform; it provides readable, executable, and structured hardware operation entries for Agent systems such as `votx-agent` and `kemo-agent`.
+
+Current scope:
+
+```text
+Skill descriptor + CLI scripts + JSON output + pin registry + hardware references
+```
+
+---
+
 ## Compatible Models
 
-All models with **40-pin GPIO** header:
+All Raspberry Pi models with a **40-pin GPIO** header can use the pin references, but runtime GPIO backends differ by board:
 
-| Model | SoC | RAM |
-|:------|:----|:---:|
-| Pi 1B+ | BCM2835 | 512 MB |
-| Pi 2 / 2B | BCM2836/7 | 1 GB |
-| Pi 3B / 3B+ | BCM2837 | 1 GB |
-| Pi 4B | BCM2711 | 1–8 GB |
-| Pi 5 | BCM2712 | 4–8 GB |
-| Pi Zero W / Zero 2 W | BCM2835/2710 | 512 MB |
+| Model | SoC | RAM | Recommended GPIO backend | Status |
+|:------|:----|:---:|:-------------------------|:------:|
+| Pi 1B+ | BCM2835 | 512 MB | RPi.GPIO | Works |
+| Pi 2 / 2B | BCM2836/7 | 1 GB | RPi.GPIO | Works |
+| Pi 3B / 3B+ | BCM2837 | 1 GB | RPi.GPIO | Recommended |
+| Pi 4B | BCM2711 | 1–8 GB | RPi.GPIO | Recommended |
+| Pi 5 | BCM2712 | 4–8 GB | rpi-lgpio / gpiozero / lgpio | Backend switch required |
+| Pi Zero W / Zero 2 W | BCM2835/2710 | 512 MB | RPi.GPIO | Works |
 
-> Early Pi 1 models (26-pin) are not compatible. Full hardware specs in `references/hardware.md`.
+> Raspberry Pi 5 changed the GPIO stack. Native `RPi.GPIO` mode is not guaranteed to work. For Pi 5, prefer [requirements-pi5.txt](requirements-pi5.txt).
+>
+> Early 26-pin Pi 1 boards are not covered by the 40-pin pinout table.
 
 ---
 
 ## File Structure
 
-```
+```text
 raspberry-pi-skill/
-├── SKILL.md                        # Skill descriptor (Agent entry point)
+├── SKILL.md                        # Skill descriptor, Agent entry point
 ├── README.md                       # Chinese documentation
 ├── README.en.md                    # This file
 ├── logo.png                        # Project logo
-├── requirements.txt                # Python dependencies
+├── requirements.txt                # Default Python deps for Pi 3/4
+├── requirements-pi5.txt            # Pi 5 compatibility deps
+├── config/
+│   └── pins.example.json           # Example pin registry
 ├── references/
-│   ├── hardware.md                 # Full hardware specs comparison
+│   ├── hardware.md                 # Hardware specs comparison
 │   └── pinout.md                   # Complete 40-pin GPIO reference
 └── scripts/
-    ├── gpio_control.py             # GPIO control script
-    └── pi_info.py                  # System monitoring script
+    ├── gpio_control.py             # GPIO control with JSON output
+    └── pi_info.py                  # System monitoring with JSON output
+```
+
+`config/pins.json` is a local runtime registry and is ignored by `.gitignore`. Create it from the example when needed:
+
+```bash
+cp config/pins.example.json config/pins.json
 ```
 
 ---
@@ -72,59 +99,92 @@ raspberry-pi-skill/
 
 ### Python Packages
 
+Default install for Pi 3B / 3B+ / 4B:
+
 ```bash
 pip3 install -r requirements.txt
 ```
 
-| Package | Purpose | Required |
-|:--------|:--------|:--------:|
-| RPi.GPIO | GPIO pin control | Yes |
+Recommended install for Pi 5:
 
-> Full list in [requirements.txt](requirements.txt).
+```bash
+pip3 install -r requirements-pi5.txt
+```
+
+| Package | Purpose | Scenario |
+|:--------|:--------|:---------|
+| RPi.GPIO | GPIO pin control | Pi 1/2/3/4/Zero |
+| rpi-lgpio | RPi.GPIO-compatible interface backed by lgpio | Pi 5 recommended |
+| gpiozero | High-level GPIO API for future device layer | Pi 5 / general |
 
 ### System Tools
 
-Pre-installed on Raspberry Pi OS:
+Usually pre-installed on Raspberry Pi OS:
 
 | Command | Package | Purpose |
 |:--------|:--------|:--------|
 | `vcgencmd` | libraspberrypi-bin | CPU temp / freq / voltage |
 | `pinout` | raspberrypi-sys-mods | GPIO pinout diagram |
-| `ip` / `df` / `free` | coreutils | Network / disk / memory |
+| `ip` / `df` / `free` | coreutils / iproute2 | Network / disk / memory |
 
 ### Hardware Permission
 
-User must be in the `gpio` group to access `/dev/gpiomem` (default on Raspberry Pi OS).
+User must be in the `gpio` group to access `/dev/gpiomem`.
 
 ```bash
-groups                             # Check if in gpio group
-sudo usermod -aG gpio $USER       # Add if missing (re-login required)
+groups
+sudo usermod -aG gpio $USER
 ```
 
-### Optional
+Re-login is required after changing groups.
 
-| Dependency | Purpose |
-|:-----------|:--------|
-| wiringpi (C lib + `gpio` CLI) | Reference only in SKILL.md WiringPi section, not used by scripts |
+---
+
+## Installation
+
+A virtual environment is recommended to avoid Raspberry Pi OS `externally-managed-environment` restrictions:
+
+```bash
+sudo apt update
+sudo apt install -y python3-full python3-venv python3-pip libraspberrypi-bin python3-gpiozero
+
+git clone https://github.com/kesepain-KE/raspberry-pi-skill.git
+cd raspberry-pi-skill
+
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -U pip
+pip install -r requirements.txt
+```
+
+For Pi 5:
+
+```bash
+pip install -r requirements-pi5.txt
+```
 
 ---
 
 ## Quick Start
 
 ```bash
-# 1. Copy skill to your Agent's skills/ directory
-cp -r raspberry-pi-skill /path/to/agent/skills/raspberry-pi
-
-# 2. Install Python dependency
-pip3 install RPi.GPIO
-
-# 3. Check system status
 python3 scripts/pi_info.py
+python3 scripts/pi_info.py --json
 
-# 4. Start controlling GPIO
 python3 scripts/gpio_control.py --list
+python3 scripts/gpio_control.py --status
 python3 scripts/gpio_control.py --pin 17 --read
+python3 scripts/gpio_control.py --pin 17 --write 1
 python3 scripts/gpio_control.py --pin 18 --pwm 1000 50
+python3 scripts/gpio_control.py --pin 18 --beep 3
+```
+
+For Agents, use JSON output:
+
+```bash
+python3 scripts/gpio_control.py --pin 17 --read --json
+python3 scripts/gpio_control.py --pin 17 --write 1 --json
+python3 scripts/gpio_control.py --status --json
 ```
 
 ---
@@ -133,36 +193,94 @@ python3 scripts/gpio_control.py --pin 18 --pwm 1000 50
 
 ### gpio_control.py
 
-GPIO pin control with read, write, PWM, buzzer, and conflict detection.
+GPIO control with read, write, PWM output, buzzer beep, pin registry warning, and JSON output.
+
+Common commands:
 
 ```bash
-python3 scripts/gpio_control.py --list              # Pin mapping table
-python3 scripts/gpio_control.py --status            # Occupied pins
-python3 scripts/gpio_control.py --pin 17 --read     # Read pin state
-python3 scripts/gpio_control.py --pin 17 --write 1  # Write HIGH
-python3 scripts/gpio_control.py --pin 18 --pwm 1000 50  # PWM output
-python3 scripts/gpio_control.py --pin 18 --beep 3   # Buzzer 3 beeps
+python3 scripts/gpio_control.py --list
+python3 scripts/gpio_control.py --status
+python3 scripts/gpio_control.py --pin 17 --read
+python3 scripts/gpio_control.py --pin 17 --write 1
+python3 scripts/gpio_control.py --pin 17 --write 1 --keep-state
+python3 scripts/gpio_control.py --pin 18 --pwm 1000 50 --duration 3
+python3 scripts/gpio_control.py --pin 18 --beep 3 --interval 0.2
 ```
 
-> Built-in pin conflict detection warns when operating an occupied pin.
+JSON example:
+
+```json
+{
+  "ok": true,
+  "action": "write",
+  "bcm": 17,
+  "physical": 11,
+  "value": 1,
+  "level": "HIGH",
+  "cleanup": true,
+  "warning": null
+}
+```
+
+Notes:
+
+- BCM numbering is used by default.
+- Cleanup is enabled after operations by default, suitable for one-shot tests.
+- `--keep-state` skips cleanup, useful when a pin needs to keep its level.
+- Pin conflict warnings come from `config/pins.json`; they are registry hints, not real-time system-level pin scans.
 
 ### pi_info.py
 
-One-command system info with three output modes:
+One-command system information collection with human-readable, JSON, and watch modes.
 
 ```bash
-python3 scripts/pi_info.py            # Dashboard mode (human-readable)
-python3 scripts/pi_info.py --json     # JSON output (for programmatic use)
-python3 scripts/pi_info.py --watch    # Live refresh (2s interval, Ctrl+C to quit)
+python3 scripts/pi_info.py
+python3 scripts/pi_info.py --json
+python3 scripts/pi_info.py --watch
 ```
 
-Output: CPU temp / freq / voltage / throttling, memory, disk, network, GPIO library version.
+Output: model, OS, CPU temp / freq / voltage / throttling, memory, disk, network, GPIO library version.
+
+---
+
+## Pin Registry
+
+The project uses `config/pins.json` to record actual wiring, instead of hard-coding occupied pins in Python source.
+
+Create local registry:
+
+```bash
+cp config/pins.example.json config/pins.json
+```
+
+Example:
+
+```json
+{
+  "pins": {
+    "18": {
+      "type": "BCM",
+      "bcm": 18,
+      "physical": 12,
+      "device": "buzzer",
+      "mode": "PWM/output",
+      "owner": "raspberry-pi-skill",
+      "notes": "buzzer IO"
+    }
+  }
+}
+```
+
+View registry:
+
+```bash
+python3 scripts/gpio_control.py --status
+python3 scripts/gpio_control.py --status --json
+```
 
 ---
 
 ## Hardware Reference
-
-See `references/` for detailed specs:
 
 | File | Content |
 |:----|:--------|
@@ -171,9 +289,18 @@ See `references/` for detailed specs:
 
 ---
 
+## Roadmap
+
+- GPIO backend abstraction: RPi.GPIO / rpi-lgpio / gpiozero / lgpio
+- Device layer: LED, buzzer, relay, button, ultrasonic, servo, DHT sensor
+- Long-running daemon for devices that must hold state, such as relays, fans, and lights
+- More complete error codes and tests
+
+---
+
 ## Contributing
 
-Issues and PRs are welcome! Open an issue for discussion before major changes.
+Issues and PRs are welcome. Please open an issue before major changes.
 
 ---
 

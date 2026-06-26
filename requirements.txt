@@ -1,5 +1,8 @@
-# 核心依赖
+# Core dependency for Raspberry Pi 3/4 and legacy GPIO access
 RPi.GPIO
 
-# 可选（WiringPi C API，供 SKILL.md WiringPi 章节参考）
+# Optional high-level GPIO API for future device-layer features.
+# gpiozero
+
+# Optional WiringPi C API reference only; scripts do not depend on it.
 # wiringpi

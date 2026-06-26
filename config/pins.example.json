@@ -1,0 +1,21 @@
+{
+  "pins": {
+    "18": {
+      "type": "BCM",
+      "bcm": 18,
+      "physical": 12,
+      "device": "example buzzer IO",
+      "mode": "PWM/output",
+      "owner": "manual",
+      "notes": "示例占用记录；按你的实际接线修改或删除"
+    },
+    "2": {
+      "type": "5V",
+      "physical": 2,
+      "device": "example fan VCC",
+      "mode": "power",
+      "owner": "manual",
+      "notes": "示例电源占用记录；按你的实际接线修改或删除"
+    }
+  }
+}
