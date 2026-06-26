@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="logo.png" alt="raspberry-pi-skill logo" width="200">
+
 # raspberry-pi-skill
 
 A Raspberry Pi hardware control skill pack for AI Agents
@@ -9,6 +11,8 @@ Covers GPIO pin control, PWM, sensor wiring, and system monitoring for Agents ru
 [![GitHub](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![RPi.GPIO](https://img.shields.io/badge/dep-RPi.GPIO-blue)](requirements.txt)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-orange)](https://github.com/kesepain-KE/raspberry-pi-skill/pulls)
+
+</div>[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-orange)](https://github.com/kesepain-KE/raspberry-pi-skill/pulls)
 
 </div>
 
