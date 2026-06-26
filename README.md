@@ -8,11 +8,8 @@
 
 给树莓派上运行的 AI Agent 使用的 GPIO 和硬件控制技能，覆盖引脚读写、PWM、传感器接线、系统监控。
 
-[![GitHub](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 [![RPi.GPIO](https://img.shields.io/badge/dep-RPi.GPIO-blue)](requirements.txt)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-orange)](https://github.com/kesepain-KE/raspberry-pi-skill/pulls)
-
-</div>[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-orange)](https://github.com/kesepain-KE/raspberry-pi-skill/pulls)
 
 </div>
 
@@ -35,7 +32,14 @@
 
 所有 **40-pin GPIO** 的树莓派型号：
 
-Pi 1B+ / 2 / 3 / 3B+ / 4 / 5 / Zero W / Zero 2 W
+| 型号 | 处理器 | RAM |
+|:----|:------|:---:|
+| Pi 1B+ | BCM2835 | 512 MB |
+| Pi 2 / 2B | BCM2836/7 | 1 GB |
+| Pi 3B / 3B+ | BCM2837 | 1 GB |
+| Pi 4B | BCM2711 | 1–8 GB |
+| Pi 5 | BCM2712 | 4–8 GB |
+| Pi Zero W / Zero 2 W | BCM2835/2710 | 512 MB |
 
 > Pi 1 早期 26-pin 型号不适用。硬件参数表覆盖 Pi 1 ~ 5 + Zero 全系列。
 
@@ -46,8 +50,9 @@ Pi 1B+ / 2 / 3 / 3B+ / 4 / 5 / Zero W / Zero 2 W
 ```
 raspberry-pi-skill/
 ├── SKILL.md                        # 技能描述（Agent 入口读取）
-├── README.md                       # 本文件
-├── README.en.md                    # English version
+├── README.md                       # 本文件（中文文档）
+├── README.en.md                    # English documentation
+├── logo.png                        # 项目 Logo
 ├── requirements.txt                # Python 依赖
 ├── references/
 │   ├── hardware.md                 # 全系列硬件参数对照表
@@ -71,6 +76,8 @@ pip3 install -r requirements.txt
 |:----|:----|:----:|
 | RPi.GPIO | GPIO 引脚读写控制 | 是 |
 
+> 完整依赖见 [requirements.txt](requirements.txt)。
+
 ### 系统工具
 
 Raspberry Pi OS 预装，无需额外安装：
@@ -83,18 +90,18 @@ Raspberry Pi OS 预装，无需额外安装：
 
 ### 硬件权限
 
-用户需在 `gpio` 组以访问 `/dev/gpiomem`（Raspberry Pi OS 默认已添加）。
+用户需在 `gpio` 组才能访问 `/dev/gpiomem`（Raspberry Pi OS 默认已添加）。
 
 ```bash
-groups           # 确认是否在 gpio 组
-sudo usermod -aG gpio $USER   # 若不在则添加（需重登录）
+groups                             # 确认是否在 gpio 组
+sudo usermod -aG gpio $USER        # 若不在则添加（需重登录生效）
 ```
 
-### 可选
+### 可选依赖
 
 | 依赖 | 用途 |
 |:----|:----|
-| wiringpi（C 库 + gpio 命令） | SKILL.md WiringPi 章节参考，脚本不依赖 |
+| wiringpi（C 库 + `gpio` 命令） | SKILL.md WiringPi 章节参考，脚本不依赖 |
 
 ---
 
@@ -129,20 +136,20 @@ python3 scripts/gpio_control.py --list              # 引脚对照表
 python3 scripts/gpio_control.py --status            # 已用引脚
 python3 scripts/gpio_control.py --pin 17 --read     # 读取高/低电平
 python3 scripts/gpio_control.py --pin 17 --write 1  # 写高电平
-python3 scripts/gpio_control.py --pin 18 --pwm 1000 50  # PWM
+python3 scripts/gpio_control.py --pin 18 --pwm 1000 50  # PWM 输出
 python3 scripts/gpio_control.py --pin 18 --beep 3   # 蜂鸣器响 3 次
 ```
 
-脚本内置 **引脚占用检测**，操作已被占用的引脚时会自动警告。
+> 脚本内置引脚占用检测，操作已被占用的引脚时会自动警告。
 
 ### pi_info.py
 
-系统信息一键采集，支持普通模式、JSON 输出、实时监控。
+系统信息一键采集，支持三种输出模式：
 
 ```bash
-python3 scripts/pi_info.py            # 面板模式
+python3 scripts/pi_info.py            # 面板模式（人类可读）
 python3 scripts/pi_info.py --json     # JSON 输出（供其他程序调用）
-python3 scripts/pi_info.py --watch    # 每 2 秒刷新（Ctrl+C 退出）
+python3 scripts/pi_info.py --watch    # 实时监控（每 2s 刷新，Ctrl+C 退出）
 ```
 
 输出内容：CPU 温度 / 频率 / 电压 / 限频标志、内存、磁盘、网络状态、GPIO 库版本。
@@ -168,4 +175,4 @@ python3 scripts/pi_info.py --watch    # 每 2 秒刷新（Ctrl+C 退出）
 
 ## 许可
 
-MIT License
+项目基于 [MIT License](LICENSE) 开源。

@@ -8,11 +8,8 @@ A Raspberry Pi hardware control skill pack for AI Agents
 
 Covers GPIO pin control, PWM, sensor wiring, and system monitoring for Agents running on the Pi.
 
-[![GitHub](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green)](LICENSE)
 [![RPi.GPIO](https://img.shields.io/badge/dep-RPi.GPIO-blue)](requirements.txt)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-orange)](https://github.com/kesepain-KE/raspberry-pi-skill/pulls)
-
-</div>[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-orange)](https://github.com/kesepain-KE/raspberry-pi-skill/pulls)
 
 </div>
 
@@ -35,9 +32,16 @@ Covers GPIO pin control, PWM, sensor wiring, and system monitoring for Agents ru
 
 All models with **40-pin GPIO** header:
 
-Pi 1B+ / 2 / 3 / 3B+ / 4 / 5 / Zero W / Zero 2 W
+| Model | SoC | RAM |
+|:------|:----|:---:|
+| Pi 1B+ | BCM2835 | 512 MB |
+| Pi 2 / 2B | BCM2836/7 | 1 GB |
+| Pi 3B / 3B+ | BCM2837 | 1 GB |
+| Pi 4B | BCM2711 | 1–8 GB |
+| Pi 5 | BCM2712 | 4–8 GB |
+| Pi Zero W / Zero 2 W | BCM2835/2710 | 512 MB |
 
-> Early Pi 1 models (26-pin) are not compatible. Hardware reference covers Pi 1 ~ 5 and Zero series.
+> Early Pi 1 models (26-pin) are not compatible. Full hardware specs in `references/hardware.md`.
 
 ---
 
@@ -48,6 +52,7 @@ raspberry-pi-skill/
 ├── SKILL.md                        # Skill descriptor (Agent entry point)
 ├── README.md                       # Chinese documentation
 ├── README.en.md                    # This file
+├── logo.png                        # Project logo
 ├── requirements.txt                # Python dependencies
 ├── references/
 │   ├── hardware.md                 # Full hardware specs comparison
@@ -71,6 +76,8 @@ pip3 install -r requirements.txt
 |:--------|:--------|:--------:|
 | RPi.GPIO | GPIO pin control | Yes |
 
+> Full list in [requirements.txt](requirements.txt).
+
 ### System Tools
 
 Pre-installed on Raspberry Pi OS:
@@ -86,15 +93,15 @@ Pre-installed on Raspberry Pi OS:
 User must be in the `gpio` group to access `/dev/gpiomem` (default on Raspberry Pi OS).
 
 ```bash
-groups                          # Check if in gpio group
-sudo usermod -aG gpio $USER    # Add if missing (re-login required)
+groups                             # Check if in gpio group
+sudo usermod -aG gpio $USER       # Add if missing (re-login required)
 ```
 
 ### Optional
 
 | Dependency | Purpose |
 |:-----------|:--------|
-| wiringpi (C lib + gpio CLI) | Reference only in SKILL.md WiringPi section, not used by scripts |
+| wiringpi (C lib + `gpio` CLI) | Reference only in SKILL.md WiringPi section, not used by scripts |
 
 ---
 
@@ -129,20 +136,20 @@ python3 scripts/gpio_control.py --list              # Pin mapping table
 python3 scripts/gpio_control.py --status            # Occupied pins
 python3 scripts/gpio_control.py --pin 17 --read     # Read pin state
 python3 scripts/gpio_control.py --pin 17 --write 1  # Write HIGH
-python3 scripts/gpio_control.py --pin 18 --pwm 1000 50  # PWM
+python3 scripts/gpio_control.py --pin 18 --pwm 1000 50  # PWM output
 python3 scripts/gpio_control.py --pin 18 --beep 3   # Buzzer 3 beeps
 ```
 
-Built-in **pin conflict detection** warns when operating an occupied pin.
+> Built-in pin conflict detection warns when operating an occupied pin.
 
 ### pi_info.py
 
-One-command system info with human-readable, JSON, and live monitoring modes.
+One-command system info with three output modes:
 
 ```bash
-python3 scripts/pi_info.py            # Dashboard mode
-python3 scripts/pi_info.py --json     # JSON output
-python3 scripts/pi_info.py --watch    # Live refresh (2s, Ctrl+C to quit)
+python3 scripts/pi_info.py            # Dashboard mode (human-readable)
+python3 scripts/pi_info.py --json     # JSON output (for programmatic use)
+python3 scripts/pi_info.py --watch    # Live refresh (2s interval, Ctrl+C to quit)
 ```
 
 Output: CPU temp / freq / voltage / throttling, memory, disk, network, GPIO library version.
@@ -168,4 +175,4 @@ Issues and PRs are welcome! Open an issue for discussion before major changes.
 
 ## License
 
-MIT
+This project is licensed under the [MIT License](LICENSE).
